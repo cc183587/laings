@@ -98,7 +98,16 @@
 <!-- ========== 管理员主页 ========== -->
 <div id="adminPage" style="display:none">
   <h1>管理员面板</h1>
+  
+  <!-- 概要 -->
+  <div id="adminSummary" style="display:none">
+    <div class="box" style="background:#f8f9fa;border-left:4px solid #007AFF">
+      <div style="font-size:16px;font-weight:bold;color:#333;margin-bottom:12px">本月统计</div>
+      <div id="summaryContent"></div>
+    </div>
+  </div>
   <div class="nav" id="adminNav">
+    <button onclick="showAdmin('summary')" data-tab="summary">概要</button>
     <button onclick="showAdmin('batch')" data-tab="batch">出入库</button>
     <button onclick="showAdmin('product')" data-tab="product">产品管理</button>
     <button onclick="showAdmin('emp')" data-tab="emp">员工管理</button>
@@ -369,6 +378,7 @@ function showAdmin(tab){
     adminLoadRecord();
   }
   if(tab === 'total') adminLoadTotal();
+  if(tab === 'summary') adminLoadSummary();
 }
 
 function adminAddEmp(){
@@ -434,6 +444,91 @@ function adminLoadRecord(){
   if(!hasData) html = '<p style="text-align:center;padding:20px;color:#999">暂无记录</p>';
   else html += `<div class="title">总计：${total.toFixed(2)} 元</div>`;
   document.getElementById('adminRecordList').innerHTML = html;
+}
+
+// ==================== 管理员概要统计 ====================
+function adminLoadSummary(){
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  
+  // 计算本月的开始和结束日期
+  const monthStart = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+  
+  // 本月入库数量
+  let inQty = 0;
+  // 本月出库数量
+  let outQty = 0;
+  // 本月利润
+  let profit = 0;
+  // 本月员工工资合计
+  let wageTotal = 0;
+  
+  // 遍历批次统计出入库
+  data.batches.forEach(b => {
+    // 获取批次创建日期（取前10位 YYYY-MM-DD）
+    const createDate = b.createTime ? b.createTime.substring(0, 10) : '';
+    if(createDate.startsWith(monthStart)){
+      if(b.status === 'in'){
+        inQty += b.qty;
+      }
+    }
+    // 如果已出库，计算利润
+    if(b.status === 'out'){
+      // 获取出库日期
+      const outDate = b.outDate || b.createTime;
+      if(outDate && outDate.substring(0, 10).startsWith(monthStart)){
+        outQty += b.outQty || b.qty;
+        profit += b.profit || 0;
+      }
+    }
+  });
+  
+  // 遍历记录统计员工工资
+  Object.keys(data.records || {}).forEach(empId => {
+    Object.keys(data.records[empId]).forEach(date => {
+      if(!date.startsWith(monthStart)) return;
+      Object.keys(data.records[empId][date]).forEach(prodKey => {
+        const recs = data.records[empId][date][prodKey];
+        if(!Array.isArray(recs)) return;
+        recs.forEach(rec => {
+          if(rec && typeof rec === 'object'){
+            wageTotal += (rec.n || 0) * (rec.p || 0);
+          }
+        });
+      });
+    });
+  });
+  
+  // 渲染统计卡片
+  const html = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:#fff;padding:12px;border-radius:8px;text-align:center">
+        <div style="font-size:13px;color:#888">入库数量</div>
+        <div style="font-size:24px;font-weight:bold;color:#34c759">${inQty}</div>
+        <div style="font-size:12px;color:#aaa">件</div>
+      </div>
+      <div style="background:#fff;padding:12px;border-radius:8px;text-align:center">
+        <div style="font-size:13px;color:#888">出库数量</div>
+        <div style="font-size:24px;font-weight:bold;color:#ff9500">${outQty}</div>
+        <div style="font-size:12px;color:#aaa">件</div>
+      </div>
+      <div style="background:#fff;padding:12px;border-radius:8px;text-align:center">
+        <div style="font-size:13px;color:#888">预估利润</div>
+        <div style="font-size:24px;font-weight:bold;color:#007AFF">${profit.toFixed(2)}</div>
+        <div style="font-size:12px;color:#aaa">元</div>
+      </div>
+      <div style="background:#fff;padding:12px;border-radius:8px;text-align:center">
+        <div style="font-size:13px;color:#888">员工工资</div>
+        <div style="font-size:24px;font-weight:bold;color:#ff3b30">${wageTotal.toFixed(2)}</div>
+        <div style="font-size:12px;color:#aaa">元</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;font-size:13px;color:#666;text-align:center">
+      ${currentYear}年${currentMonth}月数据
+    </div>
+  `;
+  document.getElementById('summaryContent').innerHTML = html;
 }
 
 function adminLoadTotal(){
@@ -599,6 +694,7 @@ function outBatch(batchId){
   batch.outQty = actualOutQty;
   batch.outCost = actualOutCost;
   batch.profit = profit;
+  batch.outDate = new Date().toLocaleString('zh-CN');
   saveData();
   adminLoadBatchList();
 }
