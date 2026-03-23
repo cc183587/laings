@@ -90,7 +90,7 @@
     <button class="btn btn-green" onclick="empAdd()">确认登记</button>
   </div>
   <hr class="divider">
-  <button class="btn" onclick="empShow()">查询我的记录</button>
+  <button class="btn" onclick="empShow()">查询我的工资</button>
   <div class="box" id="empResult" style="min-height:0"></div>
   <button class="logout-float" onclick="logout()">退出</button>
 </div>
@@ -729,12 +729,9 @@ function empShow(){
 
   let todayTotal = 0;
   let monthTotal = 0;
-  let allTotal = 0;
-  let html = '';
+  let html = `<h3>${currentUser} ${emp.name || ''}</h3>`;
 
-  const dates = Object.keys(data.records[currentUser]).sort().reverse();
-  let hasData = false;
-
+  const dates = Object.keys(data.records[currentUser]).sort();
   dates.forEach(date => {
     let dateTotal = 0;
     const dateData = data.records[currentUser][date];
@@ -748,42 +745,26 @@ function empShow(){
         if(!rec || typeof rec !== 'object') return;
         const amount = rec.n * rec.p;
         dateTotal += amount;
-        allTotal += amount;
-        hasData = true;
 
-        if(date === today) todayTotal += amount;
-        if(date.startsWith(currentMonth)) monthTotal += amount;
+        if(date === today){
+          todayTotal += amount;
+          html += `<div style="background:#f0f8ff;padding:8px;margin:4px 0;border-radius:4px">
+            <div style="font-weight:bold">${today}</div>
+            <div>${prodName} · ${rec.n}个 · ${rec.p}元/个 · ${amount.toFixed(2)}元</div>
+          </div>`;
+        }
       });
     });
 
-    if(dateTotal > 0){
-      html += `<div style="background:#f8f9fa;padding:10px;border-radius:8px;margin:6px 0">`;
-      html += `<div style="font-weight:bold;color:#333;margin-bottom:6px">${date}</div>`;
-      Object.keys(dateData).forEach(prodKey => {
-        const prodName = data.products[prodKey]?.name || prodKey;
-        const recs = dateData[prodKey];
-        if(!Array.isArray(recs)) return;
-        recs.forEach(rec => {
-          if(!rec || typeof rec !== 'object') return;
-          const amount = rec.n * rec.p;
-          html += `<div style="padding:3px 0;font-size:14px;color:#555">${prodName} · ${rec.n}个 · ${rec.p}元/个 = ${amount.toFixed(2)}元</div>`;
-        });
-      });
-      html += `<div style="text-align:right;font-weight:bold;color:#007AFF;margin-top:4px">小计：${dateTotal.toFixed(2)}元</div>`;
-      html += '</div>';
+    if(date.startsWith(currentMonth)){
+      monthTotal += dateTotal;
     }
   });
 
-  if(!hasData){
-    html = '<p style="text-align:center;padding:20px;color:#999">暂无登记记录</p>';
-  }
-
-  html += `<div style="margin-top:16px;padding:15px;background:#e8f4ff;border-radius:8px">
+  html += `<div style="margin-top:20px;padding:15px;background:#e8f4ff;border-radius:8px">
     <div style="font-size:18px;font-weight:bold;margin-bottom:10px">工资统计</div>
     <div style="margin:8px 0">今日工资：<span style="color:#007AFF;font-size:20px;font-weight:bold">${todayTotal.toFixed(2)}</span> 元</div>
     <div style="margin:8px 0">本月工资：<span style="color:#007AFF;font-size:20px;font-weight:bold">${monthTotal.toFixed(2)}</span> 元</div>
-    <div style="margin:8px 0">累计工资：<span style="color:#007AFF;font-size:20px;font-weight:bold">${allTotal.toFixed(2)}</span> 元</div>
-  </div>`;
   </div>`;
 
   document.getElementById('empResult').innerHTML = html;
