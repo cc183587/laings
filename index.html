@@ -98,13 +98,13 @@
 <!-- ========== 管理员主页 ========== -->
 <div id="adminPage" style="display:none">
   <h1>管理员面板</h1>
-  <div class="nav">
-    <button onclick="showAdmin('emp')">员工管理</button>
-    <button onclick="showAdmin('register')">产量登记</button>
-    <button onclick="showAdmin('record')">查询记录</button>
-    <button onclick="showAdmin('total')">工资统计</button>
-    <button onclick="showAdmin('product')">产品管理</button>
-    <button onclick="showAdmin('batch')">出入库</button>
+  <div class="nav" id="adminNav">
+    <button onclick="showAdmin('emp')" data-tab="emp">员工管理</button>
+    <button onclick="showAdmin('register')" data-tab="register">产量登记</button>
+    <button onclick="showAdmin('record')" data-tab="record">查询记录</button>
+    <button onclick="showAdmin('total')" data-tab="total">工资统计</button>
+    <button onclick="showAdmin('product')" data-tab="product">产品管理</button>
+    <button onclick="showAdmin('batch')" data-tab="batch">出入库</button>
   </div>
   <button class="logout-float" onclick="logout()">退出</button>
 
@@ -123,7 +123,9 @@
   <div id="adminRecord" style="display:none">
     <h2>查询记录</h2>
     <div class="box">
-      <input type="text" id="recordEmpId" placeholder="工号（可选）">
+      <select id="recordEmpId">
+        <option value="">-- 全部员工 --</option>
+      </select>
       <input type="date" id="recordDate">
       <button class="btn btn-sm-green" onclick="adminLoadRecord()">查询</button>
       <button class="btn btn-sm" onclick="adminExportRecord()">导出Excel</button>
@@ -157,6 +159,7 @@
       <select id="regEmp">
         <option value="">-- 选择员工 --</option>
       </select>
+      <div id="regEmpName" style="text-align:center;color:#888;font-size:15px;margin:6px 0"></div>
       <select id="regProd">
         <option value="">-- 选择产品 --</option>
       </select>
@@ -347,11 +350,24 @@ function showAdmin(tab){
   show('adminPage');
   show('admin'+tab.charAt(0).toUpperCase()+tab.slice(1));
   rebuildProdSelect();
+  // 导航高亮
+  document.querySelectorAll('#adminNav button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
   if(tab === 'emp') adminLoadEmpList();
   if(tab === 'register') adminInitRegister();
   if(tab === 'product') adminLoadProductList();
   if(tab === 'batch') adminLoadBatchList();
-  if(tab === 'record') { document.getElementById('recordDate').value = new Date().toISOString().split('T')[0]; adminLoadRecord(); }
+  if(tab === 'record') {
+    // 填充员工下拉
+    const empSel = document.getElementById('recordEmpId');
+    empSel.innerHTML = '<option value="">-- 全部员工 --</option>';
+    data.emps.forEach(e => {
+      empSel.innerHTML += `<option value="${e.id}">${e.id} ${e.name || ''}</option>`;
+    });
+    document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
+    adminLoadRecord();
+  }
   if(tab === 'total') adminLoadTotal();
 }
 
@@ -368,7 +384,11 @@ function adminAddEmp(){
 }
 
 function adminLoadEmpList(){
-  const html = data.emps.map(e => `<div class="item"><span>${e.id}</span><span>${e.name}</span><button class="btn-sm btn-sm-red" onclick="adminDelEmp('${e.id}')">删除</button></div>`).join('');
+  let html = '<table><tr><th>工号</th><th>姓名</th><th>操作</th></tr>';
+  data.emps.forEach(e => {
+    html += `<tr><td>${e.id}</td><td>${e.name || '-'}</td><td><button class="btn-sm btn-sm-red" onclick="adminDelEmp('${e.id}')">删除</button></td></tr>`;
+  });
+  html += '</table>';
   document.getElementById('adminEmpList').innerHTML = html || '<p style="color:#999">暂无员工</p>';
 }
 
@@ -380,7 +400,7 @@ function adminDelEmp(id){
 }
 
 function adminLoadRecord(){
-  const empFilter = document.getElementById('recordEmpId').value.trim().toLowerCase();
+  const empFilter = document.getElementById('recordEmpId').value;
   const dateFilter = document.getElementById('recordDate').value;
 
   let html = '<table><tr><th>工号</th><th>姓名</th><th>产品</th><th>工序</th><th>数量</th><th>金额</th><th>日期</th></tr>';
@@ -392,7 +412,7 @@ function adminLoadRecord(){
     if(!emp) return;
     
     // 工号过滤
-    if(empFilter && !empId.toLowerCase().includes(empFilter)) return;
+    if(empFilter && empId !== empFilter) return;
 
     Object.keys(data.records[empId]).forEach(date => {
       // 日期过滤
@@ -591,10 +611,22 @@ function adminInitRegister(){
     empSel.innerHTML += `<option value="${e.id}">${e.id} ${e.name || ''}</option>`;
   });
   // 重置表单
+  document.getElementById('regEmpName').textContent = '';
   document.getElementById('regProd').value = '';
   document.getElementById('regProcessList').innerHTML = '';
   document.getElementById('regResult').innerHTML = '';
 }
+
+document.getElementById('regEmp').addEventListener('change', function(){
+  const empId = this.value;
+  const nameEl = document.getElementById('regEmpName');
+  if(empId){
+    const emp = data.emps.find(e => e.id === empId);
+    nameEl.textContent = emp?.name ? '欢迎 ' + emp.name : '';
+  } else {
+    nameEl.textContent = '';
+  }
+});
 
 document.getElementById('regProd').addEventListener('change', function(){
   const prodKey = this.value;
@@ -638,16 +670,15 @@ function adminRegister(){
   // 显示结果
   const emp = data.emps.find(e => e.id === empId);
   const empName = emp ? (emp.name || empId) : empId;
-  let html = `<div style="background:#f0faf0;padding:10px;border-radius:8px;margin:10px 0">`;
-  html += `<div style="font-weight:bold;color:#34c759;margin-bottom:8px">登记成功</div>`;
-  html += `<div style="font-weight:bold;margin-bottom:6px">${empName} · ${date} · ${data.products[prodKey].name}</div>`;
+  let html = `<div style="background:#f0f8ff;padding:10px;border-radius:8px;margin:10px 0">`;
+  html += `<div style="font-weight:bold;color:#333;margin-bottom:8px">${date} · ${data.products[prodKey].name}</div>`;
   let total = 0;
   processes.forEach(p => {
     const amt = p.count * p.p;
     total += amt;
-    html += `<div style="padding:4px 0">${p.n}：${p.count}个 × ${p.p}元/个 = ${amt.toFixed(2)}元</div>`;
+    html += `<div style="padding:4px 0">✓ ${p.n}：${p.count}个 × ${p.p}元/个 = ${amt.toFixed(2)}元</div>`;
   });
-  html += `<div style="font-weight:bold;margin-top:8px;color:#34c759">本次金额：${total.toFixed(2)}元</div>`;
+  html += `<div style="font-weight:bold;margin-top:8px;color:#007AFF">本次登记：${total.toFixed(2)}元</div>`;
   html += '</div>';
 
   const resultDiv = document.getElementById('regResult');
@@ -767,11 +798,9 @@ function empShow(){
     html = '<p style="text-align:center;padding:20px;color:#999">暂无登记记录</p>';
   }
 
-  html += `<div style="margin-top:16px;padding:15px;background:#e8f4ff;border-radius:8px">
-    <div style="font-size:18px;font-weight:bold;margin-bottom:10px">工资统计</div>
-    <div style="margin:8px 0">今日工资：<span style="color:#007AFF;font-size:20px;font-weight:bold">${todayTotal.toFixed(2)}</span> 元</div>
-    <div style="margin:8px 0">本月工资：<span style="color:#007AFF;font-size:20px;font-weight:bold">${monthTotal.toFixed(2)}</span> 元</div>
-    <div style="margin:8px 0">累计工资：<span style="color:#007AFF;font-size:20px;font-weight:bold">${allTotal.toFixed(2)}</span> 元</div>
+  html += `<div style="margin-top:16px;padding:12px;background:#e8f4ff;border-radius:8px;text-align:center">
+    <div style="font-size:15px;font-weight:bold;color:#333">工资统计</div>
+    <div style="font-size:14px;color:#555;margin-top:6px">今日：${todayTotal.toFixed(2)} 元 | 本月：${monthTotal.toFixed(2)} 元 | 累计：${allTotal.toFixed(2)} 元</div>
   </div>`;
 
   document.getElementById('empResult').innerHTML = html;
@@ -779,14 +808,14 @@ function empShow(){
 
 // Excel导出函数
 function adminExportRecord(){
-  const empFilter = document.getElementById('recordEmpId').value.trim().toLowerCase();
+  const empFilter = document.getElementById('recordEmpId').value;
   const dateFilter = document.getElementById('recordDate').value;
   const rows = [['工号','姓名','产品','工序','数量','单价','金额','日期']];
   let total = 0;
   Object.keys(data.records).forEach(empId => {
     const emp = data.emps.find(e => e.id === empId);
     if(!emp) return;
-    if(empFilter && !empId.toLowerCase().includes(empFilter)) return;
+    if(empFilter && empId !== empFilter) return;
 
     Object.keys(data.records[empId]).forEach(date => {
       if(dateFilter && date !== dateFilter) return;
