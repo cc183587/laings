@@ -631,7 +631,7 @@ function adminRegister(){
   if(!data.records[empId][date]) data.records[empId][date] = {};
   if(!data.records[empId][date][prodKey]) data.records[empId][date][prodKey] = [];
   processes.forEach(p => {
-    data.records[empId][date][prodKey].push({n: p.count, p: p.p});
+    data.records[empId][date][prodKey].push({name: p.n, n: p.count, p: p.p});
   });
   saveData();
 
@@ -691,7 +691,7 @@ function empAdd(){
   if(!data.records[currentUser][date]) data.records[currentUser][date] = {};
   if(!data.records[currentUser][date][prod]) data.records[currentUser][date][prod] = [];
   processes.forEach(p => {
-    data.records[currentUser][date][prod].push({n: p.count, p: p.p});
+    data.records[currentUser][date][prod].push({name: p.n, n: p.count, p: p.p});
   });
   saveData();
 
@@ -736,7 +736,6 @@ function empShow(){
   const dates = Object.keys(data.records[currentUser]).sort().reverse();
 
   dates.forEach(date => {
-    let dateTotal = 0;
     const dateData = data.records[currentUser][date];
     if(!dateData || typeof dateData !== 'object') return;
 
@@ -744,33 +743,24 @@ function empShow(){
       const prodName = data.products[prodKey]?.name || prodKey;
       const recs = dateData[prodKey];
       if(!Array.isArray(recs)) return;
+      if(recs.length === 0) return;
+
+      let recTotal = 0;
+      html += `<div style="background:#f0f8ff;padding:10px;border-radius:8px;margin:6px 0">`;
+      html += `<div style="font-weight:bold;color:#333;margin-bottom:6px">${date} · ${prodName}</div>`;
       recs.forEach(rec => {
         if(!rec || typeof rec !== 'object') return;
         const amount = rec.n * rec.p;
-        dateTotal += amount;
+        recTotal += amount;
         allTotal += amount;
         hasData = true;
         if(date === today) todayTotal += amount;
         if(date.startsWith(currentMonth)) monthTotal += amount;
+        html += `<div style="padding:3px 0;font-size:14px;color:#555">✓ ${rec.name || '工序'}：${rec.n}个 × ${rec.p}元/个 = ${amount.toFixed(2)}元</div>`;
       });
-    });
-
-    if(dateTotal > 0){
-      html += `<div style="background:#f8f9fa;padding:10px;border-radius:8px;margin:6px 0">`;
-      html += `<div style="font-weight:bold;color:#333;margin-bottom:6px">${date}</div>`;
-      Object.keys(dateData).forEach(prodKey => {
-        const prodName = data.products[prodKey]?.name || prodKey;
-        const recs = dateData[prodKey];
-        if(!Array.isArray(recs)) return;
-        recs.forEach(rec => {
-          if(!rec || typeof rec !== 'object') return;
-          const amount = rec.n * rec.p;
-          html += `<div style="padding:3px 0;font-size:14px;color:#555">${prodName} · ${rec.n}个 · ${rec.p}元/个 = ${amount.toFixed(2)}元</div>`;
-        });
-      });
-      html += `<div style="text-align:right;font-weight:bold;color:#007AFF;margin-top:4px">小计：${dateTotal.toFixed(2)}元</div>`;
+      html += `<div style="text-align:right;font-weight:bold;color:#007AFF;margin-top:6px">本次登记：${recTotal.toFixed(2)}元</div>`;
       html += '</div>';
-    }
+    });
   });
 
   if(!hasData){
