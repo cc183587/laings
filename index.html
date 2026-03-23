@@ -515,15 +515,24 @@ function rebuildProdSelect(){
 }
 
 // ==================== 批次管理 ====================
+function genBatchName(){
+  const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+  const todayBatches = data.batches.filter(b => b.batchName && b.batchName.startsWith(today));
+  const seq = todayBatches.length + 1;
+  return today + '-' + seq.toString().padStart(2, '0');
+}
+
 function addBatch(){
   const prod = document.getElementById('batchProd').value;
   const color = document.getElementById('batchColor').value.trim();
   const qty = parseInt(document.getElementById('batchQty').value);
   const price = parseFloat(document.getElementById('batchPrice').value);
   if(!prod || !qty || !price){ alert('请填写完整'); return; }
+  const batchName = genBatchName();
   const batchId = Date.now().toString();
   data.batches.push({
     id: batchId,
+    batchName: batchName,
     prodKey: prod,
     prodName: data.products[prod].name,
     color: color || null,
@@ -545,11 +554,12 @@ function adminLoadBatchList(){
   const sorted = [...data.batches].reverse();
   const html = sorted.map(b => {
     const statusText = b.status === 'in' ? '入库中' : '已出库';
+    const profit = b.status === 'out' ? b.profit.toFixed(2) : (b.totalCost - b.wageTotal).toFixed(2);
     const btn = b.status === 'in' ? `<button class="btn-sm btn-sm-orange" onclick="outBatch('${b.id}')">出库</button>` : '';
     return `<div class="box">
-      <div class="title">${b.prodName}${b.color ? ' · '+b.color : ''}</div>
-      <div>状态：${statusText} | 数量：${b.qty} 件 | 单价：${b.price} 元/件 | 总价：${b.totalCost.toFixed(2)} 元</div>
-      <div>员工工资：${b.wageTotal.toFixed(2)} 元 | 利润：${b.status === 'out' ? b.profit.toFixed(2) : '-'} 元</div>
+      <div class="title">${b.batchName || b.id} · ${b.prodName}${b.color ? ' · '+b.color : ''}</div>
+      <div>状态：${statusText} | 数量：${b.qty} 件 | 单价：${b.price} 元/件</div>
+      <div>员工工资：${b.wageTotal.toFixed(2)} 元 | ${b.status === 'out' ? '利润' : '预估利润'}：${profit} 元</div>
       <div class="hint">${b.createTime || ''}</div>
       <button class="btn-sm btn-sm-red" onclick="delBatch('${b.id}')">删除</button>${btn}
     </div>`;
