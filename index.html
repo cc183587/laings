@@ -90,7 +90,7 @@
     <button class="btn btn-green" onclick="empAdd()">确认登记</button>
   </div>
   <hr class="divider">
-  <button class="btn" onclick="empShow()">查询我的记录</button>
+  <button class="btn" onclick="empShow()">查询薪资</button>
   <div class="box" id="empResult" style="min-height:0"></div>
   <button class="logout-float" onclick="logout()">退出</button>
 </div>
@@ -98,22 +98,26 @@
 <!-- ========== 管理员主页 ========== -->
 <div id="adminPage" style="display:none">
   <h1>管理员面板</h1>
-  
-  <!-- 概要 -->
-  <div id="adminSummary" style="display:none">
-    <div class="box" style="background:#f8f9fa;border-left:4px solid #007AFF">
-      <div style="font-size:16px;font-weight:bold;color:#333;margin-bottom:12px">本月统计</div>
-      <div id="summaryContent"></div>
-    </div>
-  </div>
   <div class="nav" id="adminNav">
-    <button onclick="showAdmin('summary')" data-tab="summary">概要</button>
+    <button onclick="showAdmin('summary')" data-tab="summary">总览</button>
     <button onclick="showAdmin('batch')" data-tab="batch">出入库</button>
     <button onclick="showAdmin('product')" data-tab="product">产品管理</button>
     <button onclick="showAdmin('emp')" data-tab="emp">员工管理</button>
     <button onclick="showAdmin('register')" data-tab="register">产量登记</button>
     <button onclick="showAdmin('record')" data-tab="record">查询记录</button>
     <button onclick="showAdmin('total')" data-tab="total">工资统计</button>
+  </div>
+
+  <!-- 概要（点击才显示） -->
+  <div id="adminSummary" style="display:none">
+    <div class="box" style="background:#f8f9fa;border-left:4px solid #007AFF">
+      <div style="font-size:16px;font-weight:bold;color:#333;margin-bottom:12px">本月</div>
+      <div id="summaryContent"></div>
+    </div>
+    <div class="box" style="background:#fff8f0;border-left:4px solid #ff9500">
+      <div style="font-size:16px;font-weight:bold;color:#333;margin-bottom:12px">累计</div>
+      <div id="summaryAllContent"></div>
+    </div>
   </div>
   <button class="logout-float" onclick="logout()">退出</button>
 
@@ -163,7 +167,6 @@
       <select id="regEmp">
         <option value="">-- 选择员工 --</option>
       </select>
-      <div id="regEmpName" style="text-align:center;color:#888;font-size:15px;margin:6px 0"></div>
       <select id="regProd">
         <option value="">-- 选择产品 --</option>
       </select>
@@ -309,7 +312,7 @@ function login(){
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('adminPage').style.display = 'block';
     document.querySelectorAll('.logout-float').forEach(el => el.style.display = '');
-    showAdmin('emp');
+    showAdmin('summary');
     return;
   }
 
@@ -358,11 +361,17 @@ function showAdmin(tab){
   hideAll();
   show('adminPage');
   show('admin'+tab.charAt(0).toUpperCase()+tab.slice(1));
+  // 概要内容默认隐藏，点击才显示
+  document.getElementById('adminSummary').style.display = 'none';
   rebuildProdSelect();
   // 导航高亮
   document.querySelectorAll('#adminNav button').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
+  if(tab === 'summary'){
+    document.getElementById('adminSummary').style.display = 'block';
+    adminLoadSummary();
+  }
   if(tab === 'emp') adminLoadEmpList();
   if(tab === 'register') adminInitRegister();
   if(tab === 'product') adminLoadProductList();
@@ -413,6 +422,14 @@ function adminLoadRecord(){
   const empFilter = document.getElementById('recordEmpId').value;
   const dateFilter = document.getElementById('recordDate').value;
 
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const thisMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  let todayTotal = 0;
+  let monthTotal = 0;
+  let allTotal = 0;
+
   let html = '<table><tr><th>工号</th><th>姓名</th><th>产品</th><th>工序</th><th>数量</th><th>单价</th><th>金额</th><th>日期</th></tr>';
   let total = 0;
   let hasData = false;
@@ -433,6 +450,15 @@ function adminLoadRecord(){
         data.records[empId][date][prodKey].forEach(rec => {
           const amount = rec.n * rec.p;
           total += amount;
+          allTotal += amount;
+          // 本月统计
+          if(date.startsWith(thisMonthStr)){
+            monthTotal += amount;
+          }
+          // 今日统计
+          if(date === todayStr){
+            todayTotal += amount;
+          }
           hasData = true;
           html += `<tr><td>${empId}</td><td>${emp.name || '-'}</td><td>${prodName}</td><td>${rec.name || '-'}</td><td>${rec.n}</td><td>${rec.p}</td><td>${amount.toFixed(2)}</td><td>${date}</td></tr>`;
         });
@@ -440,20 +466,45 @@ function adminLoadRecord(){
     });
   });
 
+  // 薪资合计头部
+  const totalHtml = `
+    <div style="background:#fff5f0;padding:12px;border-radius:10px;margin-bottom:10px;text-align:center;border:2px solid #ff9500">
+      <div style="font-size:16px;font-weight:bold;color:#d35400;margin-bottom:6px">薪资合计</div>
+      <div style="font-size:15px;color:#e67e22">
+        今日：<b>${todayTotal.toFixed(2)}元</b> &nbsp;|&nbsp; 
+        本月：<b>${monthTotal.toFixed(2)}元</b> &nbsp;|&nbsp; 
+        累计：<b>${allTotal.toFixed(2)}元</b>
+      </div>
+    </div>
+  `;
+
   html += '</table>';
   if(!hasData) html = '<p style="text-align:center;padding:20px;color:#999">暂无记录</p>';
-  else html += `<div class="title">总计：${total.toFixed(2)} 元</div>`;
-  document.getElementById('adminRecordList').innerHTML = html;
+  else html += `<div class="title">本次查询总计：${total.toFixed(2)} 元</div>`;
+  document.getElementById('adminRecordList').innerHTML = totalHtml + html;
 }
 
 // ==================== 管理员概要统计 ====================
+// 解析日期字符串，返回 YYYY-MM 格式
+function parseYearMonth(dateStr){
+  if(!dateStr) return '';
+  // 处理 YYYY/MM/DD 或 YYYY-MM-DD 格式
+  const parts = dateStr.substring(0, 19).split(/[-\/]/);
+  if(parts.length >= 2){
+    const y = parts[0];
+    const m = String(parts[1]).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+  return '';
+}
+
 function adminLoadSummary(){
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
   
-  // 计算本月的开始和结束日期
-  const monthStart = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+  // 计算本月的年月
+  const thisYearMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
   
   // 本月入库数量
   let inQty = 0;
@@ -464,20 +515,35 @@ function adminLoadSummary(){
   // 本月员工工资合计
   let wageTotal = 0;
   
+  // 累计入库数量
+  let allInQty = 0;
+  // 累计出库数量
+  let allOutQty = 0;
+  // 累计利润
+  let allProfit = 0;
+  // 累计员工工资
+  let allWageTotal = 0;
+  
   // 遍历批次统计出入库
   data.batches.forEach(b => {
-    // 获取批次创建日期（取前10位 YYYY-MM-DD）
-    const createDate = b.createTime ? b.createTime.substring(0, 10) : '';
-    if(createDate.startsWith(monthStart)){
-      if(b.status === 'in'){
-        inQty += b.qty;
-      }
-    }
-    // 如果已出库，计算利润
+    // 获取批次创建日期的年月
+    const createYearMonth = parseYearMonth(b.createTime);
+    
+    // 累计统计 - 入库数量是所有批次数量（不管状态）
+    allInQty += b.qty;
     if(b.status === 'out'){
-      // 获取出库日期
-      const outDate = b.outDate || b.createTime;
-      if(outDate && outDate.substring(0, 10).startsWith(monthStart)){
+      allOutQty += b.outQty || b.qty;
+      allProfit += b.profit || 0;
+    }
+    
+    // 本月统计 - 入库（只看入库中的批次）
+    if(createYearMonth === thisYearMonth && b.status === 'in'){
+      inQty += b.qty;
+    }
+    // 本月统计 - 出库（使用出库日期）
+    if(b.status === 'out'){
+      const outYearMonth = parseYearMonth(b.outDate || b.createTime);
+      if(outYearMonth === thisYearMonth){
         outQty += b.outQty || b.qty;
         profit += b.profit || 0;
       }
@@ -487,24 +553,39 @@ function adminLoadSummary(){
   // 遍历记录统计员工工资
   Object.keys(data.records || {}).forEach(empId => {
     Object.keys(data.records[empId]).forEach(date => {
-      if(!date.startsWith(monthStart)) return;
+      const recYearMonth = date.substring(0, 7); // date 格式是 YYYY-MM-DD
+      
+      // 累计统计
       Object.keys(data.records[empId][date]).forEach(prodKey => {
         const recs = data.records[empId][date][prodKey];
         if(!Array.isArray(recs)) return;
         recs.forEach(rec => {
           if(rec && typeof rec === 'object'){
-            wageTotal += (rec.n || 0) * (rec.p || 0);
+            allWageTotal += (rec.n || 0) * (rec.p || 0);
           }
         });
       });
+      
+      // 本月统计
+      if(recYearMonth === thisYearMonth){
+        Object.keys(data.records[empId][date]).forEach(prodKey => {
+          const recs = data.records[empId][date][prodKey];
+          if(!Array.isArray(recs)) return;
+          recs.forEach(rec => {
+            if(rec && typeof rec === 'object'){
+              wageTotal += (rec.n || 0) * (rec.p || 0);
+            }
+          });
+        });
+      }
     });
   });
   
-  // 渲染统计卡片
+  // 渲染本月统计卡片
   const html = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div style="background:#fff;padding:12px;border-radius:8px;text-align:center">
-        <div style="font-size:13px;color:#888">入库数量</div>
+        <div style="font-size:13px;color:#888">在库数量</div>
         <div style="font-size:24px;font-weight:bold;color:#34c759">${inQty}</div>
         <div style="font-size:12px;color:#aaa">件</div>
       </div>
@@ -529,6 +610,36 @@ function adminLoadSummary(){
     </div>
   `;
   document.getElementById('summaryContent').innerHTML = html;
+  
+  // 渲染累计统计卡片
+  const allHtml = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:#fff;padding:12px;border-radius:8px;text-align:center">
+        <div style="font-size:13px;color:#888">入库数量</div>
+        <div style="font-size:24px;font-weight:bold;color:#34c759">${allInQty}</div>
+        <div style="font-size:12px;color:#aaa">件</div>
+      </div>
+      <div style="background:#fff;padding:12px;border-radius:8px;text-align:center">
+        <div style="font-size:13px;color:#888">出库数量</div>
+        <div style="font-size:24px;font-weight:bold;color:#ff9500">${allOutQty}</div>
+        <div style="font-size:12px;color:#aaa">件</div>
+      </div>
+      <div style="background:#fff;padding:12px;border-radius:8px;text-align:center">
+        <div style="font-size:13px;color:#888">预估利润</div>
+        <div style="font-size:24px;font-weight:bold;color:#007AFF">${allProfit.toFixed(2)}</div>
+        <div style="font-size:12px;color:#aaa">元</div>
+      </div>
+      <div style="background:#fff;padding:12px;border-radius:8px;text-align:center">
+        <div style="font-size:13px;color:#888">员工工资</div>
+        <div style="font-size:24px;font-weight:bold;color:#ff3b30">${allWageTotal.toFixed(2)}</div>
+        <div style="font-size:12px;color:#aaa">元</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;font-size:13px;color:#666;text-align:center">
+      所有时间累计
+    </div>
+  `;
+  document.getElementById('summaryAllContent').innerHTML = allHtml;
 }
 
 function adminLoadTotal(){
@@ -883,6 +994,9 @@ function empAdd(){
   }
 
   items.forEach(input => input.value = '');
+  
+  // 自动加载薪资查询
+  empShow();
 }
 
 function empShow(){
@@ -894,6 +1008,14 @@ function empShow(){
     return;
   }
 
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const thisMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  let todayTotal = 0;
+  let monthTotal = 0;
+  let allTotal = 0;
+
   // 按regId分组，每次登记一个卡片
   const regGroups = {};
   Object.keys(data.records[currentUser]).forEach(date => {
@@ -904,6 +1026,18 @@ function empShow(){
       if(!Array.isArray(recs)) return;
       recs.forEach(rec => {
         if(!rec || typeof rec !== 'object') return;
+        const amount = (rec.n || 0) * (rec.p || 0);
+        // 累计
+        allTotal += amount;
+        // 本月
+        if(date.startsWith(thisMonthStr)){
+          monthTotal += amount;
+        }
+        // 今日
+        if(date === todayStr){
+          todayTotal += amount;
+        }
+        
         const regId = rec.regId || 0;
         if(!regGroups[regId]){
           regGroups[regId] = {
@@ -926,8 +1060,22 @@ function empShow(){
     return b - a;
   });
 
+  // 薪资合计头部
+  const totalHtml = `
+    <div style="background:#fff5f0;padding:14px;border-radius:10px;margin-bottom:10px;text-align:center;border:2px solid #ff9500">
+      <div style="font-size:18px;font-weight:bold;color:#d35400;margin-bottom:8px">薪资合计</div>
+      <div style="font-size:16px;color:#e67e22">
+        <span style="margin:0 8px">今日：<b>${todayTotal.toFixed(2)}元</b></span>
+        <span style="margin:0 8px">|</span>
+        <span style="margin:0 8px">本月：<b>${monthTotal.toFixed(2)}元</b></span>
+        <span style="margin:0 8px">|</span>
+        <span style="margin:0 8px">累计：<b>${allTotal.toFixed(2)}元</b></span>
+      </div>
+    </div>
+  `;
+
   if(sortedKeys.length === 0 || (sortedKeys.length === 1 && sortedKeys[0] == 0)){
-    document.getElementById('empResult').innerHTML = '<p style="text-align:center;padding:20px;color:#999">暂无登记记录</p>';
+    document.getElementById('empResult').innerHTML = totalHtml + '<p style="text-align:center;padding:20px;color:#999">暂无登记记录</p>';
     return;
   }
 
@@ -946,7 +1094,7 @@ function empShow(){
     html += cardHtml;
   });
 
-  document.getElementById('empResult').innerHTML = html;
+  document.getElementById('empResult').innerHTML = totalHtml + html;
 }
 
 // Excel导出函数
