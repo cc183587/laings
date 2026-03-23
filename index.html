@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工厂产量工资管理系统</title>
+<!-- SheetJS 用于导出Excel -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:Microsoft YaHei,sans-serif}
+  body{background:#f0f2f5;padding:15px;max-width:640px;margin:0 auto}
+  h1{font-size:24px;text-align:center;margin:16px 0;color:#c0392b;font-weight:bold}
+  h2{font-size:18px;font-weight:bold;margin:10px 0;color:#333}
+
+  .btn{width:100%;font-size:17px;padding:14px;margin:8px 0;background:#007AFF;color:#fff;border:none;border-radius:8px;cursor:pointer}
+  .btn:active{opacity:.85}
+  .btn-red{background:#ff3b30}
+  .btn-green{background:#34c759}
+  .btn-orange{background:#ff9500}
+  .btn-sm{font-size:13px;padding:6px 12px;margin:4px;background:#007AFF;color:#fff;border:none;border-radius:6px;cursor:pointer}
+  .btn-sm-red{background:#ff3b30}
+  .btn-sm-green{background:#34c759}
+  .btn-sm-orange{background:#ff9500}
+
+  input,select{width:100%;font-size:16px;padding:10px;margin:6px 0;border:1px solid #ccc;border-radius:6px;background:#fff}
+  input[type=number]{-moz-appearance:textfield}
+
+  .item{display:flex;align-items:center;gap:8px;margin:6px 0;background:#fff;padding:8px;border-radius:6px}
+  .item .name{flex:0 0 110px;font-size:15px}
+  .item .price{flex:0 0 80px;font-size:13px;color:#888}
+  .item input{flex:1;margin:0}
+
+  .box{background:#fff;padding:12px;margin:8px 0;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .title{font-weight:bold;margin:10px 0;font-size:16px;color:#333}
+  .tag{display:inline-block;padding:2px 10px;background:#e8f4ff;color:#007AFF;border-radius:12px;font-size:13px;margin:2px}
+  .row{display:flex;gap:8px;align-items:center;margin:4px 0}
+  .row input{margin:0}
+
+  .nav{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}
+  .nav button{flex:1;padding:10px;font-size:14px;background:#fff;border:1px solid #ddd;border-radius:8px;cursor:pointer;min-width:60px}
+  .nav button.active{background:#007AFF;color:#fff;border-color:#007AFF}
+
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0}
+  th{background:#007AFF;color:#fff;padding:8px 6px;text-align:left}
+  td{padding:7px 6px;border-bottom:1px solid #eee}
+  tr:nth-child(even) td{background:#f9f9f9}
+
+  .divider{border:none;border-top:1px solid #e0e0e0;margin:12px 0}
+  .hint{font-size:13px;color:#999;margin:4px 0}
+  #empResult{font-size:15px;line-height:1.8}
+
+  .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:999}
+  .modal-overlay.show{display:flex}
+  .modal{background:#fff;padding:20px;border-radius:12px;max-width:400px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+  .modal-title{font-size:18px;font-weight:bold;margin-bottom:12px}
+  .modal-msg{margin-bottom:16px;line-height:1.6}
+  .modal-input{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-bottom:12px;display:none}
+  .modal-input.show{display:block}
+  .modal-btns{display:flex;gap:8px;justify-content:flex-end}
+  .modal-btn{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-size:15px}
+  .modal-cancel{background:#f0f0f0;color:#333}
+  .modal-confirm{background:#007AFF;color:#fff}
+  .modal-confirm.danger{background:#ff3b30}
+
+  .logout-float{position:fixed;top:12px;right:12px;z-index:100;font-size:13px;padding:6px 14px;background:#888;color:#fff;border:none;border-radius:6px;cursor:pointer;display:none}
+  .logout-float:hover{background:#666}
+</style>
+</head>
+<body>
+
+<!-- ========== 登录选择 ========== -->
+<div id="loginPage">
+  <h1>🐱 每日产量登记</h1>
+  <div class="box">
+    <input type="text" id="loginInput" placeholder="请输入工号">
+    <button class="btn" onclick="login()">登录</button>
+  </div>
+</div>
+
+<!-- ========== 员工页面 ========== -->
+<div id="empPage" style="display:none">
+  <h1>员工产量登记</h1>
+  <div id="empWelcome" style="text-align:center;color:#888;font-size:15px;margin-bottom:10px"></div>
+  <div class="box">
+    <div class="title">选择产品</div>
+    <select id="prod">
+      <option value="">-- 请选择产品 --</option>
+    </select>
+    <div id="processList"></div>
+    <button class="btn btn-green" onclick="empAdd()">确认登记</button>
+  </div>
+  <hr class="divider">
+  <button class="btn" onclick="empShow()">查询我的工资</button>
+  <div class="box" id="empResult" style="min-height:0"></div>
+  <button class="logout-float" onclick="logout()">退出</button>
+</div>
+
+<!-- ========== 管理员主页 ========== -->
+<div id="adminPage" style="display:none">
+  <h1>管理员面板</h1>
+  <div class="nav">
+    <button onclick="showAdmin('emp')">员工管理</button>
+    <button onclick="showAdmin('register')">产量登记</button>
+    <button onclick="showAdmin('record')">查询记录</button>
+    <button onclick="showAdmin('total')">工资统计</button>
+    <button onclick="showAdmin('product')">产品管理</button>
+    <button onclick="showAdmin('batch')">出入库</button>
+  </div>
+  <button class="logout-float" onclick="logout()">退出</button>
+
+  <!-- 员工管理 -->
+  <div id="adminEmp" style="display:none">
+    <h2>员工管理</h2>
+    <div class="box">
+      <input type="text" id="newEmpId" placeholder="工号">
+      <input type="text" id="newEmpName" placeholder="姓名">
+      <button class="btn" onclick="adminAddEmp()">添加员工</button>
+    </div>
+    <div id="adminEmpList"></div>
+  </div>
+
+  <!-- 查询记录 -->
+  <div id="adminRecord" style="display:none">
+    <h2>查询记录</h2>
+    <div class="box">
+      <input type="text" id="recordEmpId" placeholder="工号（可选）">
+      <input type="date" id="recordDate">
+      <button class="btn btn-sm-green" onclick="adminLoadRecord()">查询</button>
+      <button class="btn btn-sm" onclick="adminExportRecord()">导出Excel</button>
+    </div>
+    <div id="adminRecordList"></div>
+  </div>
+
+  <!-- 工资统计 -->
+  <div id="adminTotal" style="display:none">
+    <h2>工资统计</h2>
+    <div class="box">
+      <button class="btn btn-sm" onclick="adminExportTotal()">导出Excel</button>
+    </div>
+    <div id="adminTotalList"></div>
+  </div>
+
+  <!-- 产品管理 -->
+  <div id="adminProduct" style="display:none">
+    <h2>产品管理</h2>
+    <div class="box">
+      <input type="text" id="newProdName" placeholder="产品名称">
+      <button class="btn" onclick="adminAddProduct()">添加产品</button>
+    </div>
+    <div id="adminProductList"></div>
+  </div>
+
+  <!-- 产量登记（代登记） -->
+  <div id="adminRegister" style="display:none">
+    <h2>产量登记</h2>
+    <div class="box">
+      <select id="regEmp">
+        <option value="">-- 选择员工 --</option>
+      </select>
+      <select id="regProd">
+        <option value="">-- 选择产品 --</option>
+      </select>
+      <div id="regProcessList"></div>
+      <button class="btn btn-green" onclick="adminRegister()">确认登记</button>
+    </div>
+    <div id="regResult"></div>
+  </div>
+
+  <!-- 批次管理（出入库） -->
+  <div id="adminBatch" style="display:none">
+    <h2>出入库</h2>
+    <div class="box">
+      <select id="batchProd"></select>
+      <select id="batchColor">
+        <option value="">-- 选择颜色 --</option>
+        <option value="黑">黑</option>
+        <option value="白">白</option>
+        <option value="粉">粉</option>
+        <option value="米白">米白</option>
+        <option value="红">红</option>
+      </select>
+      <input type="number" id="batchQty" placeholder="入库数量">
+      <input type="number" step="0.01" id="batchPrice" placeholder="单价（元/件）">
+      <button class="btn btn-green" onclick="addBatch()">创建批次</button>
+    </div>
+    <div id="batchList"></div>
+  </div>
+</div>
+
+<!-- 自定义模态框 -->
+<div id="customModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="customModalTitle">提示</div>
+    <div class="modal-msg" id="customModalMsg"></div>
+    <input type="text" class="modal-input" id="customModalInput">
+    <div class="modal-btns">
+      <button class="modal-btn modal-cancel" id="customModalCancel" onclick="modalCancel()">取消</button>
+      <button class="modal-btn modal-confirm" id="customModalConfirm" onclick="modalConfirm()">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== 自定义模态框（替代 alert/confirm/prompt） ====================
+let _modalResolve = null;
+
+function showModal({title='', msg='', hasInput=false, inputDefault='', confirmText='确定', danger=false, cancelText='取消', hideCancel=false}){
+  document.getElementById('customModalTitle').textContent = title;
+  document.getElementById('customModalMsg').innerHTML = msg;
+  const inp = document.getElementById('customModalInput');
+  if(hasInput){
+    inp.style.display = 'block';
+    inp.value = inputDefault;
+    setTimeout(()=>inp.focus(),100);
+  } else {
+    inp.style.display = 'none';
+  }
+  document.getElementById('customModalConfirm').textContent = confirmText;
+  document.getElementById('customModalConfirm').className = danger ? 'danger' : '';
+  document.getElementById('customModalCancel').textContent = cancelText;
+  document.getElementById('customModalCancel').style.display = hideCancel ? 'none' : '';
+  document.getElementById('customModal').classList.add('show');
+  return new Promise(resolve => { _modalResolve = resolve; });
+}
+function modalConfirm(){
+  const inp = document.getElementById('customModalInput');
+  const val = inp.style.display !== 'none' ? inp.value : true;
+  document.getElementById('customModal').classList.remove('show');
+  if(_modalResolve){ _modalResolve(val); _modalResolve=null; }
+}
+function modalCancel(){
+  document.getElementById('customModal').classList.remove('show');
+  if(_modalResolve){ _modalResolve(null); _modalResolve=null; }
+}
+
+// ==================== 数据初始化 ====================
+const ADMIN_PWD = "sj";  // 管理员密码
+
+let currentUser = "";
+let editingProdKey = null;
+let editingProcesses = [];
+
+// 默认产品配置
+const DEFAULT_PRODUCTS = {
+  s: { name: "音箱", processes: [
+    {n:"贴喇叭",p:0.01},{n:"贴电池",p:0.01},{n:"点板",p:0.4},{n:"打螺丝",p:0.015}
+  ]},
+  h: { name: "耳机", processes: [
+    {n:"穿线",p:0.02},{n:"贴棉",p:0.015},{n:"打锁扣",p:0.03},{n:"内外匙",p:0.025},{n:"打反螺丝",p:0.018}
+  ]}
+};
+
+let data = null;  // 当前公司的数据
+
+// 获取当前公司的数据
+function loadData(){
+  const saved = localStorage.getItem('factoryData');
+  if(saved){
+    data = JSON.parse(saved);
+  } else {
+    // 初始化新公司数据
+    data = {
+      emps: [{id:"001",name:""},{id:"002",name:""},{id:"003",name:""}],
+      records: {},
+      products: DEFAULT_PRODUCTS,
+      batches: []
+    };
+    localStorage.setItem('factoryData', JSON.stringify(data));
+  }
+
+  // 兼容旧数据：emps 可能是字符串数组
+  if(data.emps.length > 0 && typeof data.emps[0] === 'string'){
+    data.emps = data.emps.map(id => ({id, name: ""}));
+  }
+  // 兼容旧数据：如果没有products字段
+  if(!data.products) data.products = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+  // 兼容旧数据：如果没有batches字段
+  if(!data.batches) data.batches = [];
+}
+
+// 保存当前公司的数据
+function saveData(){
+  localStorage.setItem('factoryData', JSON.stringify(data));
+}
+
+function getEmpIds(){ return data.emps.map(e => e.id); }
+function getEmpName(id){ const e = data.emps.find(x=>x.id===id); return e?.name || ""; }
+
+// ==================== 统一登录 ====================
+function login(){
+  const val = document.getElementById('loginInput').value.trim();
+  if(!val){ alert('请输入工号或密码'); return; }
+
+  // 管理员登录（不区分大小写）
+  if(val.toLowerCase() === ADMIN_PWD.toLowerCase()){
+    loadData();
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('adminPage').style.display = 'block';
+    document.querySelectorAll('.logout-float').forEach(el => el.style.display = '');
+    showAdmin('emp');
+    return;
+  }
+
+  // 员工登录（不区分大小写）
+  loadData();  // 先加载数据
+  const normalizedVal = val.toLowerCase();
+  const empId = getEmpIds().find(id => id.toLowerCase() === normalizedVal);
+  if(empId){
+    currentUser = empId;
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('empPage').style.display = 'block';
+    document.querySelectorAll('.logout-float').forEach(el => el.style.display = '');
+    rebuildProdSelect();
+    document.getElementById('empResult').innerHTML = '';
+    const emp = data.emps.find(e => e.id === empId);
+    document.getElementById('empWelcome').textContent = emp?.name ? '欢迎 ' + emp.name : '';
+    return;
+  }
+
+  alert('工号不存在');
+}
+
+// ==================== 退出登录 ====================
+function logout(){
+  currentUser = "";
+  document.getElementById('loginPage').style.display = 'block';
+  document.getElementById('adminPage').style.display = 'none';
+  document.getElementById('empPage').style.display = 'none';
+  document.getElementById('loginInput').value = '';
+  document.querySelectorAll('.logout-float').forEach(el => el.style.display = 'none');
+}
+
+// ==================== 页面导航 ====================
+function hideAll(){
+  ['loginPage','empPage','adminPage',
+   'adminEmp','adminRegister','adminRecord','adminTotal','adminProduct','adminBatch']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.style.display = 'none';
+    });
+}
+function show(id){ document.getElementById(id).style.display = 'block'; }
+
+// ==================== 管理员功能 ====================
+function showAdmin(tab){
+  hideAll();
+  show('adminPage');
+  show('admin'+tab.charAt(0).toUpperCase()+tab.slice(1));
+  rebuildProdSelect();
+  if(tab === 'emp') adminLoadEmpList();
+  if(tab === 'register') adminInitRegister();
+  if(tab === 'product') adminLoadProductList();
+  if(tab === 'batch') adminLoadBatchList();
+  if(tab === 'record') { document.getElementById('recordDate').value = new Date().toISOString().split('T')[0]; adminLoadRecord(); }
+  if(tab === 'total') adminLoadTotal();
+}
+
+function adminAddEmp(){
+  const id = document.getElementById('newEmpId').value.trim();
+  const name = document.getElementById('newEmpName').value.trim();
+  if(!id || !name){ alert('请填写完整'); return; }
+  if(data.emps.find(e => e.id === id)){ alert('工号已存在'); return; }
+  data.emps.push({id, name});
+  saveData();
+  adminLoadEmpList();
+  document.getElementById('newEmpId').value = '';
+  document.getElementById('newEmpName').value = '';
+}
+
+function adminLoadEmpList(){
+  const html = data.emps.map(e => `<div class="item"><span>${e.id}</span><span>${e.name}</span><button class="btn-sm btn-sm-red" onclick="adminDelEmp('${e.id}')">删除</button></div>`).join('');
+  document.getElementById('adminEmpList').innerHTML = html || '<p style="color:#999">暂无员工</p>';
+}
+
+function adminDelEmp(id){
+  if(!confirm('确定删除员工 '+id+'？')) return;
+  data.emps = data.emps.filter(e => e.id !== id);
+  saveData();
+  adminLoadEmpList();
+}
+
+function adminLoadRecord(){
+  const empFilter = document.getElementById('recordEmpId').value.trim().toLowerCase();
+  const dateFilter = document.getElementById('recordDate').value;
+
+  let html = '<table><tr><th>工号</th><th>姓名</th><th>产品</th><th>工序</th><th>数量</th><th>金额</th><th>日期</th></tr>';
+  let total = 0;
+  let hasData = false;
+
+  Object.keys(data.records).forEach(empId => {
+    const emp = data.emps.find(e => e.id === empId);
+    if(!emp) return;
+    
+    // 工号过滤
+    if(empFilter && !empId.toLowerCase().includes(empFilter)) return;
+
+    Object.keys(data.records[empId]).forEach(date => {
+      // 日期过滤
+      if(dateFilter && date !== dateFilter) return;
+
+      Object.keys(data.records[empId][date]).forEach(prodKey => {
+        const prodName = data.products[prodKey]?.name || prodKey;
+        data.records[empId][date][prodKey].forEach(rec => {
+          const amount = rec.n * rec.p;
+          total += amount;
+          hasData = true;
+          html += `<tr><td>${empId}</td><td>${emp.name || '-'}</td><td>${prodName}</td><td>${rec.n}</td><td>${rec.p}</td><td>${amount.toFixed(2)}</td><td>${date}</td></tr>`;
+        });
+      });
+    });
+  });
+
+  html += '</table>';
+  if(!hasData) html = '<p style="text-align:center;padding:20px;color:#999">暂无记录</p>';
+  else html += `<div class="title">总计：${total.toFixed(2)} 元</div>`;
+  document.getElementById('adminRecordList').innerHTML = html;
+}
+
+function adminLoadTotal(){
+  let html = '<table><tr><th>工号</th><th>姓名</th><th>总金额</th></tr>';
+  const totals = {};
+  Object.keys(data.records || {}).forEach(empId => {
+    const emp = data.emps.find(e => e.id === empId);
+    if(!emp) return;
+    let total = 0;
+    Object.keys(data.records[empId]).forEach(date => {
+      const dateData = data.records[empId][date];
+      if(!dateData || typeof dateData !== 'object') return;
+      Object.keys(dateData).forEach(prodKey => {
+        const recs = dateData[prodKey];
+        if(!Array.isArray(recs)) return;
+        recs.forEach(rec => {
+          if(!rec || typeof rec !== 'object') return;
+          total += (rec.n || 0) * (rec.p || 0);
+        });
+      });
+    });
+    if(total > 0){
+      totals[empId] = total;
+      html += `<tr><td>${empId}</td><td>${emp.name || '-'}</td><td>${total.toFixed(2)}</td></tr>`;
+    }
+  });
+  html += '</table>';
+  if(Object.keys(totals).length === 0) html = '<p style="text-align:center;padding:20px;color:#999">暂无数据</p>';
+  else {
+    const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
+    html += `<div class="title">总计：${grandTotal.toFixed(2)} 元</div>`;
+  }
+  document.getElementById('adminTotalList').innerHTML = html;
+}
+
+function adminAddProduct(){
+  const name = document.getElementById('newProdName').value.trim();
+  if(!name){ alert('请填写产品名称'); return; }
+  const key = Date.now().toString(); // 自动生成唯一ID
+  data.products[key] = {name, processes: []};
+  saveData();
+  adminLoadProductList();
+  document.getElementById('newProdName').value = '';
+}
+
+function adminLoadProductList(){
+  const html = Object.keys(data.products).map(k =>
+    `<div class="box">
+      <div class="title">${data.products[k].name}</div>
+      <div id="prodProcesses_${k}">${data.products[k].processes.map(p => `<span class="tag">${p.n} ${p.p}元</span>`).join('') || '<span style="color:#999">暂无工序</span>'}</div>
+      <div id="prodEdit_${k}" style="display:none;margin-top:10px">
+        <input type="text" id="procName_${k}" placeholder="工序名称" style="flex:1;margin-right:8px">
+        <input type="number" step="0.01" id="procPrice_${k}" placeholder="单价" style="flex:1;margin-right:8px">
+        <button class="btn-sm" onclick="addProcess('${k}')">添加工序</button>
+      </div>
+      <div style="margin-top:8px">
+        <button class="btn-sm" onclick="toggleEditProcess('${k}')">编辑工序</button>
+        <button class="btn-sm btn-sm-red" onclick="adminDelProduct('${k}')">删除产品</button>
+      </div>
+    </div>`
+  ).join('');
+  document.getElementById('adminProductList').innerHTML = html || '<p style="color:#999">暂无产品</p>';
+}
+
+function toggleEditProcess(prodKey){
+  const el = document.getElementById('prodEdit_' + prodKey);
+  if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function addProcess(prodKey){
+  const name = document.getElementById(`procName_${prodKey}`).value.trim();
+  const price = parseFloat(document.getElementById(`procPrice_${prodKey}`).value);
+  if(!name || isNaN(price)){ alert('请填写工序名称和单价'); return; }
+  data.products[prodKey].processes.push({n: name, p: price});
+  saveData();
+  adminLoadProductList();
+}
+
+function adminDelProduct(key){
+  if(!confirm('确定删除产品？')) return;
+  delete data.products[key];
+  saveData();
+  adminLoadProductList();
+}
+
+function rebuildProdSelect(){
+  const sel = document.getElementById('prod');
+  const batchSel = document.getElementById('batchProd');
+  const regSel = document.getElementById('regProd');
+  sel.innerHTML = '<option value="">-- 请选择产品 --</option>';
+  batchSel.innerHTML = '<option value="">-- 请选择产品 --</option>';
+  regSel.innerHTML = '<option value="">-- 请选择产品 --</option>';
+  Object.keys(data.products).forEach(k => {
+    const opt = `<option value="${k}">${data.products[k].name}</option>`;
+    sel.innerHTML += opt;
+    batchSel.innerHTML += opt;
+    regSel.innerHTML += opt;
+  });
+}
+
+// ==================== 批次管理 ====================
+function addBatch(){
+  const prod = document.getElementById('batchProd').value;
+  const color = document.getElementById('batchColor').value.trim();
+  const qty = parseInt(document.getElementById('batchQty').value);
+  const price = parseFloat(document.getElementById('batchPrice').value);
+  if(!prod || !qty || !price){ alert('请填写完整'); return; }
+  const batchId = Date.now().toString();
+  data.batches.push({
+    id: batchId,
+    prodKey: prod,
+    prodName: data.products[prod].name,
+    color: color || null,
+    qty: qty,
+    price: price,
+    totalCost: qty * price,
+    status: 'in',
+    createTime: new Date().toLocaleString('zh-CN'),
+    wageTotal: 0
+  });
+  saveData();
+  adminLoadBatchList();
+  document.getElementById('batchColor').value = '';
+  document.getElementById('batchQty').value = '';
+  document.getElementById('batchPrice').value = '';
+}
+
+function adminLoadBatchList(){
+  const sorted = [...data.batches].reverse();
+  const html = sorted.map(b => {
+    const statusText = b.status === 'in' ? '入库中' : '已出库';
+    const btn = b.status === 'in' ? `<button class="btn-sm btn-sm-orange" onclick="outBatch('${b.id}')">出库</button>` : '';
+    return `<div class="box">
+      <div class="title">${b.prodName}${b.color ? ' · '+b.color : ''}</div>
+      <div>状态：${statusText} | 数量：${b.qty} 件 | 单价：${b.price} 元/件 | 总价：${b.totalCost.toFixed(2)} 元</div>
+      <div>员工工资：${b.wageTotal.toFixed(2)} 元 | 利润：${b.status === 'out' ? b.profit.toFixed(2) : '-'} 元</div>
+      <div class="hint">${b.createTime || ''}</div>
+      <button class="btn-sm btn-sm-red" onclick="delBatch('${b.id}')">删除</button>${btn}
+    </div>`;
+  }).join('');
+  document.getElementById('batchList').innerHTML = html || '<p style="color:#999">暂无批次</p>';
+}
+
+function outBatch(batchId){
+  const batch = data.batches.find(b => b.id === batchId);
+  if(!batch) return;
+  const outQty = prompt('出库数量：', batch.qty);
+  if(!outQty) return;
+  const actualOutQty = parseInt(outQty);
+  if(isNaN(actualOutQty) || actualOutQty < 0){ alert('请输入有效的数量'); return; }
+  if(actualOutQty > batch.qty){ alert('出库数量不能大于入库数量！'); return; }
+  const actualOutCost = actualOutQty * batch.price;
+  const profit = actualOutCost - batch.wageTotal;
+  batch.status = 'out';
+  batch.outQty = actualOutQty;
+  batch.outCost = actualOutCost;
+  batch.profit = profit;
+  saveData();
+  adminLoadBatchList();
+}
+
+function delBatch(batchId){
+  if(!confirm('确定删除批次？')) return;
+  data.batches = data.batches.filter(b => b.id !== batchId);
+  saveData();
+  adminLoadBatchList();
+}
+
+// ==================== 管理员代登记产量 ====================
+function adminInitRegister(){
+  // 填充员工下拉
+  const empSel = document.getElementById('regEmp');
+  empSel.innerHTML = '<option value="">-- 选择员工 --</option>';
+  data.emps.forEach(e => {
+    empSel.innerHTML += `<option value="${e.id}">${e.id} ${e.name || ''}</option>`;
+  });
+  // 重置表单
+  document.getElementById('regProd').value = '';
+  document.getElementById('regProcessList').innerHTML = '';
+  document.getElementById('regResult').innerHTML = '';
+}
+
+document.getElementById('regProd').addEventListener('change', function(){
+  const prodKey = this.value;
+  const prodInfo = data.products[prodKey];
+  const list = document.getElementById('regProcessList');
+  if(prodInfo){
+    list.innerHTML = prodInfo.processes.map(p =>
+      `<div class="item"><span class="name">${p.n}</span><span class="price">${p.p}元/个</span><input type="number" data-n="${p.n}" data-p="${p.p}" placeholder="数量"></div>`
+    ).join('');
+  } else {
+    list.innerHTML = '';
+  }
+});
+
+function adminRegister(){
+  const empId = document.getElementById('regEmp').value;
+  const prodKey = document.getElementById('regProd').value;
+  if(!empId){ alert('请选择员工'); return; }
+  if(!prodKey){ alert('请选择产品'); return; }
+
+  const items = document.querySelectorAll('#regProcessList input');
+  const processes = [];
+  items.forEach(input => {
+    const n = parseInt(input.value);
+    if(n > 0){
+      processes.push({n: input.dataset.n, p: parseFloat(input.dataset.p), count: n});
+    }
+  });
+  if(processes.length === 0){ alert('请填写至少一个工序的数量'); return; }
+
+  // 保存记录（和员工自助登记完全一致）
+  const date = new Date().toISOString().split('T')[0];
+  if(!data.records[empId]) data.records[empId] = {};
+  if(!data.records[empId][date]) data.records[empId][date] = {};
+  if(!data.records[empId][date][prodKey]) data.records[empId][date][prodKey] = [];
+  processes.forEach(p => {
+    data.records[empId][date][prodKey].push({n: p.count, p: p.p});
+  });
+  saveData();
+
+  // 显示结果
+  const emp = data.emps.find(e => e.id === empId);
+  const empName = emp ? (emp.name || empId) : empId;
+  let html = `<div style="background:#f0faf0;padding:10px;border-radius:8px;margin:10px 0">`;
+  html += `<div style="font-weight:bold;color:#34c759;margin-bottom:8px">登记成功</div>`;
+  html += `<div style="font-weight:bold;margin-bottom:6px">${empName} · ${date} · ${data.products[prodKey].name}</div>`;
+  let total = 0;
+  processes.forEach(p => {
+    const amt = p.count * p.p;
+    total += amt;
+    html += `<div style="padding:4px 0">${p.n}：${p.count}个 × ${p.p}元/个 = ${amt.toFixed(2)}元</div>`;
+  });
+  html += `<div style="font-weight:bold;margin-top:8px;color:#34c759">本次金额：${total.toFixed(2)}元</div>`;
+  html += '</div>';
+
+  const resultDiv = document.getElementById('regResult');
+  if(resultDiv.innerHTML === '' || resultDiv.innerHTML.includes('暂无') || resultDiv.querySelector('.hint')){
+    resultDiv.innerHTML = html;
+  } else {
+    resultDiv.innerHTML = html + resultDiv.innerHTML;
+  }
+
+  // 清空输入
+  items.forEach(input => input.value = '');
+}
+
+// ==================== 员工功能 ====================
+document.getElementById('prod').addEventListener('change', function(){
+  const prod = this.value;
+  const prodInfo = data.products[prod];
+  const list = document.getElementById('processList');
+  if(prodInfo){
+    list.innerHTML = prodInfo.processes.map(p => `<div class="item"><span class="name">${p.n}</span><span class="price">${p.p}元/个</span><input type="number" data-n="${p.n}" data-p="${p.p}" placeholder="数量"></div>`).join('');
+  } else {
+    list.innerHTML = '';
+  }
+});
+
+function empAdd(){
+  const prod = document.getElementById('prod').value;
+  if(!prod){ alert('请选择产品'); return; }
+  const items = document.querySelectorAll('#processList input');
+  const processes = [];
+  items.forEach(input => {
+    const n = parseInt(input.value);
+    if(n > 0){
+      processes.push({n: input.dataset.n, p: parseFloat(input.dataset.p), count: n});
+    }
+  });
+  if(processes.length === 0){ alert('请填写至少一个工序的数量'); return; }
+
+  const date = new Date().toISOString().split('T')[0];
+  if(!data.records[currentUser]) data.records[currentUser] = {};
+  if(!data.records[currentUser][date]) data.records[currentUser][date] = {};
+  if(!data.records[currentUser][date][prod]) data.records[currentUser][date][prod] = [];
+  processes.forEach(p => {
+    data.records[currentUser][date][prod].push({n: p.count, p: p.p});
+  });
+  saveData();
+
+  // 显示刚登记的数据
+  let html = '<div style="background:#f0f8ff;padding:10px;border-radius:8px;margin:10px 0">';
+  html += `<div style="font-weight:bold;margin-bottom:8px">${date} · ${data.products[prod].name}</div>`;
+  processes.forEach(p => {
+    html += `<div style="padding:4px 0">✓ ${p.n}：${p.count}个 × ${p.p}元/个 = ${(p.count * p.p).toFixed(2)}元</div>`;
+  });
+  const total = processes.reduce((sum, p) => sum + p.count * p.p, 0);
+  html += `<div style="font-weight:bold;margin-top:8px;color:#007AFF">本次登记：${total.toFixed(2)}元</div>`;
+  html += '</div>';
+
+  const resultDiv = document.getElementById('empResult');
+  if(resultDiv.innerHTML === '' || resultDiv.innerHTML.includes('暂无数据')){
+    resultDiv.innerHTML = html;
+  } else {
+    resultDiv.innerHTML = html + resultDiv.innerHTML;
+  }
+
+  items.forEach(input => input.value = '');
+}
+
+function empShow(){
+  const emp = data.emps.find(e => e.id === currentUser);
+  if(!emp){ alert('未找到员工信息'); return; }
+
+  if(!data.records[currentUser]){
+    document.getElementById('empResult').innerHTML = '<p style="text-align:center;padding:20px;color:#999">暂无登记记录</p>';
+    return;
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const currentMonth = today.substring(0, 7);
+
+  let todayTotal = 0;
+  let monthTotal = 0;
+  let html = `<h3>${currentUser} ${emp.name || ''}</h3>`;
+
+  const dates = Object.keys(data.records[currentUser]).sort();
+  dates.forEach(date => {
+    let dateTotal = 0;
+    const dateData = data.records[currentUser][date];
+    if(!dateData || typeof dateData !== 'object') return;
+
+    Object.keys(dateData).forEach(prodKey => {
+      const prodName = data.products[prodKey]?.name || prodKey;
+      const recs = dateData[prodKey];
+      if(!Array.isArray(recs)) return;
+      recs.forEach(rec => {
+        if(!rec || typeof rec !== 'object') return;
+        const amount = rec.n * rec.p;
+        dateTotal += amount;
+
+        if(date === today){
+          todayTotal += amount;
+          html += `<div style="background:#f0f8ff;padding:8px;margin:4px 0;border-radius:4px">
+            <div style="font-weight:bold">${today}</div>
+            <div>${prodName} · ${rec.n}个 · ${rec.p}元/个 · ${amount.toFixed(2)}元</div>
+          </div>`;
+        }
+      });
+    });
+
+    if(date.startsWith(currentMonth)){
+      monthTotal += dateTotal;
+    }
+  });
+
+  html += `<div style="margin-top:20px;padding:15px;background:#e8f4ff;border-radius:8px">
+    <div style="font-size:18px;font-weight:bold;margin-bottom:10px">工资统计</div>
+    <div style="margin:8px 0">今日工资：<span style="color:#007AFF;font-size:20px;font-weight:bold">${todayTotal.toFixed(2)}</span> 元</div>
+    <div style="margin:8px 0">本月工资：<span style="color:#007AFF;font-size:20px;font-weight:bold">${monthTotal.toFixed(2)}</span> 元</div>
+  </div>`;
+
+  document.getElementById('empResult').innerHTML = html;
+}
+
+// Excel导出函数
+function adminExportRecord(){
+  const empFilter = document.getElementById('recordEmpId').value.trim().toLowerCase();
+  const dateFilter = document.getElementById('recordDate').value;
+  const rows = [['工号','姓名','产品','工序','数量','单价','金额','日期']];
+  let total = 0;
+  Object.keys(data.records).forEach(empId => {
+    const emp = data.emps.find(e => e.id === empId);
+    if(!emp) return;
+    if(empFilter && !empId.toLowerCase().includes(empFilter)) return;
+
+    Object.keys(data.records[empId]).forEach(date => {
+      if(dateFilter && date !== dateFilter) return;
+
+      Object.keys(data.records[empId][date]).forEach(prodKey => {
+        const prodName = data.products[prodKey]?.name || prodKey;
+        data.records[empId][date][prodKey].forEach(rec => {
+          const amount = rec.n * rec.p;
+          total += amount;
+          rows.push([empId, emp.name||'', prodName, rec.n, rec.p, amount.toFixed(2), date]);
+        });
+      });
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:10},{wch:10},{wch:12},{wch:10},{wch:10},{wch:10},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '产量记录');
+  XLSX.writeFile(wb, `产量记录.xlsx`);
+}
+
+function adminExportTotal(){
+  const rows = [['工号','姓名','总金额']];
+  Object.keys(data.records).forEach(empId => {
+    const emp = data.emps.find(e => e.id === empId);
+    if(!emp) return;
+    let total = 0;
+    Object.keys(data.records[empId]).forEach(date => {
+      Object.keys(data.records[empId][date]).forEach(prodKey => {
+        data.records[empId][date][prodKey].forEach(rec => {
+          total += rec.n * rec.p;
+        });
+      });
+    });
+    if(total > 0){
+      rows.push([empId, emp.name||'', total.toFixed(2)]);
+    }
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:10},{wch:10},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '工资统计');
+  XLSX.writeFile(wb, `工资统计.xlsx`);
+}
+</script>
+</body>
+</html>
