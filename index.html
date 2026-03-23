@@ -262,7 +262,7 @@ function loadData(){
       products: DEFAULT_PRODUCTS,
       batches: [],
       batchSeq: {},
-      batchSeq: {}
+      regSeq: 0
     };
     localStorage.setItem('factoryData', JSON.stringify(data));
   }
@@ -277,6 +277,8 @@ function loadData(){
   if(!data.batches) data.batches = [];
   // 兼容旧数据：如果没有batchSeq字段
   if(!data.batchSeq) data.batchSeq = {};
+  // 兼容旧数据：如果没有regSeq字段
+  if(!data.regSeq) data.regSeq = 0;
 }
 
 // 保存当前公司的数据
@@ -753,29 +755,35 @@ function empAdd(){
   }
 
   const timeStr = new Date().toTimeString().split(' ')[0];
+  data.regSeq++;
+  const regId = data.regSeq;
   processes.forEach(p => {
-    const record = {name: p.n, n: p.count, p: p.p, time: timeStr};
+    const record = {name: p.n, n: p.count, p: p.p, time: timeStr, regId: regId};
     record.batchCode = batch.batchCode;
     data.records[currentUser][date][prod].push(record);
     batch.wageTotal += p.count * p.p;
   });
   saveData();
 
-  // 显示刚登记的数据
-  let html = '<div style="background:#f0f8ff;padding:10px;border-radius:8px;margin:10px 0">';
-  html += `<div style="font-weight:bold;margin-bottom:8px">${date} ${timeStr} · ${data.products[prod].name}</div>`;
+  // 显示刚登记的数据（按regId分组，每个regId一个卡片）
+  let html = '';
+  let recTotal = 0;
   processes.forEach(p => {
-    html += `<div style="padding:4px 0">✓ ${p.n}：${p.count}个 × ${p.p}元/个 = ${(p.count * p.p).toFixed(2)}元</div>`;
+    const amt = p.count * p.p;
+    recTotal += amt;
+    html += `<div style="padding:4px 0">✓ ${p.n}：${p.count}个 × ${p.p}元/个 = ${amt.toFixed(2)}元</div>`;
   });
-  const total = processes.reduce((sum, p) => sum + p.count * p.p, 0);
-  html += `<div style="font-weight:bold;margin-top:8px;color:#007AFF">本次薪资：${total.toFixed(2)}元</div>`;
-  html += '</div>';
+  const cardHtml = `<div style="background:#f0f8ff;padding:10px;border-radius:8px;margin:10px 0">
+    <div style="font-weight:bold;margin-bottom:8px">${date} ${timeStr} · ${data.products[prod].name}</div>
+    ${html}
+    <div style="font-weight:bold;margin-top:8px;color:#007AFF">本次薪资：${recTotal.toFixed(2)}元</div>
+  </div>`;
 
   const resultDiv = document.getElementById('empResult');
-  if(resultDiv.innerHTML === '' || resultDiv.innerHTML.includes('暂无数据')){
-    resultDiv.innerHTML = html;
+  if(resultDiv.innerHTML === '' || resultDiv.innerHTML.includes('暂无')){
+    resultDiv.innerHTML = cardHtml;
   } else {
-    resultDiv.innerHTML = html + resultDiv.innerHTML;
+    resultDiv.innerHTML = cardHtml + resultDiv.innerHTML;
   }
 
   items.forEach(input => input.value = '');
@@ -790,39 +798,57 @@ function empShow(){
     return;
   }
 
-  let html = '';
-  let hasData = false;
-
-  const dates = Object.keys(data.records[currentUser]).sort().reverse();
-
-  dates.forEach(date => {
+  // 按regId分组，每次登记一个卡片
+  const regGroups = {};
+  Object.keys(data.records[currentUser]).forEach(date => {
     const dateData = data.records[currentUser][date];
     if(!dateData || typeof dateData !== 'object') return;
-
     Object.keys(dateData).forEach(prodKey => {
-      const prodName = data.products[prodKey]?.name || prodKey;
       const recs = dateData[prodKey];
       if(!Array.isArray(recs)) return;
-      if(recs.length === 0) return;
-
-      let recTotal = 0;
-      html += `<div style="background:#f0f8ff;padding:10px;border-radius:8px;margin:6px 0">`;
-      html += `<div style="font-weight:bold;color:#333;margin-bottom:6px">${date} ${recs[0]?.time || ''} · ${prodName}</div>`;
       recs.forEach(rec => {
         if(!rec || typeof rec !== 'object') return;
-        const amount = rec.n * rec.p;
-        recTotal += amount;
-        hasData = true;
-        html += `<div style="padding:3px 0;font-size:14px;color:#555">✓ ${rec.name || '工序'}：${rec.n}个 × ${rec.p}元/个 = ${amount.toFixed(2)}元</div>`;
+        const regId = rec.regId || 0;
+        if(!regGroups[regId]){
+          regGroups[regId] = {
+            date: date,
+            time: rec.time || '',
+            prodKey: prodKey,
+            prodName: data.products[prodKey]?.name || prodKey,
+            recs: []
+          };
+        }
+        regGroups[regId].recs.push(rec);
       });
-      html += `<div style="text-align:right;font-weight:bold;color:#007AFF;margin-top:6px">本次薪资：${recTotal.toFixed(2)}元</div>`;
-      html += '</div>';
     });
   });
 
-  if(!hasData){
-    html = '<p style="text-align:center;padding:20px;color:#999">暂无登记记录</p>';
+  // 按regId降序（最新在前），无regId的放最后
+  const sortedKeys = Object.keys(regGroups).sort((a, b) => {
+    if(a == 0) return 1;
+    if(b == 0) return -1;
+    return b - a;
+  });
+
+  if(sortedKeys.length === 0 || (sortedKeys.length === 1 && sortedKeys[0] == 0)){
+    document.getElementById('empResult').innerHTML = '<p style="text-align:center;padding:20px;color:#999">暂无登记记录</p>';
+    return;
   }
+
+  let html = '';
+  sortedKeys.forEach(regId => {
+    const g = regGroups[regId];
+    let recTotal = 0;
+    let cardHtml = `<div style="background:#f0f8ff;padding:10px;border-radius:8px;margin:6px 0">
+      <div style="font-weight:bold;margin-bottom:8px">${g.date} ${g.time} · ${g.prodName}</div>`;
+    g.recs.forEach(rec => {
+      const amount = rec.n * rec.p;
+      recTotal += amount;
+      cardHtml += `<div style="padding:3px 0;font-size:14px;color:#555">✓ ${rec.name || '工序'}：${rec.n}个 × ${rec.p}元/个 = ${amount.toFixed(2)}元</div>`;
+    });
+    cardHtml += `<div style="font-weight:bold;margin-top:8px;color:#007AFF">本次薪资：${recTotal.toFixed(2)}元</div></div>`;
+    html += cardHtml;
+  });
 
   document.getElementById('empResult').innerHTML = html;
 }
