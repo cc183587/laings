@@ -664,12 +664,14 @@ function adminRegister(){
   if(processes.length === 0){ alert('请填写至少一个工序的数量'); return; }
 
   // 保存记录（和员工自助登记完全一致）
-  const date = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const date = now.toISOString().split('T')[0];
+  const timeStr = now.toTimeString().split(' ')[0];
   if(!data.records[empId]) data.records[empId] = {};
   if(!data.records[empId][date]) data.records[empId][date] = {};
   if(!data.records[empId][date][prodKey]) data.records[empId][date][prodKey] = [];
   processes.forEach(p => {
-    data.records[empId][date][prodKey].push({name: p.n, n: p.count, p: p.p, time: new Date().toLocaleTimeString('zh-CN')});
+    data.records[empId][date][prodKey].push({name: p.n, n: p.count, p: p.p, time: timeStr});
   });
   saveData();
 
@@ -677,14 +679,14 @@ function adminRegister(){
   const emp = data.emps.find(e => e.id === empId);
   const empName = emp ? (emp.name || empId) : empId;
   let html = `<div style="background:#f0f8ff;padding:10px;border-radius:8px;margin:10px 0">`;
-  html += `<div style="font-weight:bold;color:#333;margin-bottom:8px">${date} · ${data.products[prodKey].name}</div>`;
+  html += `<div style="font-weight:bold;color:#333;margin-bottom:8px">${date} ${timeStr} · ${data.products[prodKey].name}</div>`;
   let total = 0;
   processes.forEach(p => {
     const amt = p.count * p.p;
     total += amt;
     html += `<div style="padding:4px 0">✓ ${p.n}：${p.count}个 × ${p.p}元/个 = ${amt.toFixed(2)}元</div>`;
   });
-  html += `<div style="font-weight:bold;margin-top:8px;color:#007AFF">本次登记：${total.toFixed(2)}元</div>`;
+  html += `<div style="font-weight:bold;margin-top:8px;color:#007AFF">本次薪资：${total.toFixed(2)}元</div>`;
   html += '</div>';
 
   const resultDiv = document.getElementById('regResult');
