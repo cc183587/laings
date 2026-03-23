@@ -727,8 +727,16 @@ function empAdd(){
   if(!data.records[currentUser]) data.records[currentUser] = {};
   if(!data.records[currentUser][date]) data.records[currentUser][date] = {};
   if(!data.records[currentUser][date][prod]) data.records[currentUser][date][prod] = [];
+  // 找到该产品未出库的批次（FIFO），自动关联
+  const batch = [...data.batches]
+    .filter(b => b.prodKey === prod && b.status === 'in')
+    .sort((a, b) => a.createTime.localeCompare(b.createTime))[0];
+
   processes.forEach(p => {
-    data.records[currentUser][date][prod].push({name: p.n, n: p.count, p: p.p, time: new Date().toLocaleTimeString('zh-CN')});
+    const record = {name: p.n, n: p.count, p: p.p, time: new Date().toLocaleTimeString('zh-CN')};
+    if(batch) record.batchCode = batch.batchCode;
+    data.records[currentUser][date][prod].push(record);
+    if(batch) batch.wageTotal += p.count * p.p;
   });
   saveData();
 
