@@ -39,8 +39,8 @@
   .nav{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}
   .nav button{flex:1;padding:10px;font-size:14px;background:#fff;border:1px solid #ddd;border-radius:8px;cursor:pointer;min-width:60px}
   .nav button.active{background:#007AFF;color:#fff;border-color:#007AFF}
-  #adminTitle{position:fixed;top:0;left:0;right:0;background:#f0f2f5;z-index:101;padding:12px 0 2px;text-align:center;font-size:20px;margin:0;color:#ff3b30}
-  #adminNav{position:fixed;top:44px;left:0;right:0;background:#f0f2f5;z-index:100;padding:8px 10px;max-width:640px;margin:0 auto;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+  #adminTitle{text-align:center;font-size:20px;color:#ff3b30;padding:10px 0 6px;margin:0;line-height:1.3}
+  #adminNav{margin:0;padding:8px 10px;box-shadow:none;border-radius:0}
 
   table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0;background:#fff;border-radius:8px;overflow:hidden}
   th{background:#495057;color:#fff;padding:10px 8px;text-align:left}
@@ -70,7 +70,7 @@
 
   /* Toast 提示样式 */
   .toast-container{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
-  .toast{background:#333;color:#fff;padding:12px 24px;border-radius:8px;font-size:15px;box-shadow:0 4px 12px rgba(0,0,0,.15);opacity:0;transition:opacity .3s,transform .3s;transform:translateY(10px);max-width:90%}
+  .toast{background:#333;color:#fff;padding:12px 24px;border-radius:8px;font-size:15px;box-shadow:0 4px 12px rgba(0,0,0,.15);opacity:0;transition:opacity .3s,transform .3s;transform:translateY(10px);max-width:90%;white-space:pre-line;text-align:center}
   .toast.show{opacity:1;transform:translateY(0)}
   .toast.success{background:#10B981}
   .toast.error{background:#DC2626}
@@ -281,10 +281,10 @@
 <!-- Toast 容器 -->
 <div id="toastContainer" class="toast-container"></div>
 
-<!-- ========== 管理员主页 ========== -->
-<div id="adminPage" style="display:none;padding-top:100px">
-  <h1 id="adminTitle"></h1>
-  <div class="nav" id="adminNav">
+<!-- ========== 管理员顶栏（fixed，独立于adminPage）========== -->
+<div id="adminBar" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:640px;z-index:200;background:#f0f2f5;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+  <h1 id="adminTitle" style="text-align:center;font-size:20px;color:#ff3b30;padding:10px 0 6px;margin:0;line-height:1.3"></h1>
+  <div class="nav" id="adminNav" style="margin:0;padding:8px 10px;border-radius:0;box-shadow:none">
     <button onclick="showAdmin('summary')" data-tab="summary">总览</button>
     <button onclick="showAdmin('batch')" data-tab="batch">出入库</button>
     <button onclick="showAdmin('product')" data-tab="product">产品管理</button>
@@ -293,6 +293,10 @@
     <button onclick="showAdmin('record')" data-tab="record">查询记录</button>
     <button onclick="showAdmin('total')" data-tab="total">薪资明细</button>
   </div>
+</div>
+
+<!-- ========== 管理员主页 ========== -->
+<div id="adminPage" style="display:none;padding-top:120px">
 
   <!-- 概要（点击才显示） -->
   <div id="adminSummary" style="display:none">
@@ -411,8 +415,7 @@
       </select>
       <input type="number" id="batchQty" placeholder="入库数量">
       <input type="number" step="0.01" id="batchPrice" placeholder="单价（元/件）">
-      <button class="btn" onclick="addBatch()">创建批次</button>
-      <button class="btn btn-orange" onclick="recalcAllBatchProfit()" style="margin-top:4px;font-size:14px">🔄 重算历史利润（修复旧数据）</button>
+      <button class="btn" onclick="addBatch()">创建入库</button>
     </div>
     <div id="batchList"></div>
   </div>
@@ -467,7 +470,7 @@ function modalCancel(){
 // ==================== 多公司配置 ====================
 // 公司列表：prefix=工号前缀, name=公司名称, adminPwd=管理员密码
 const COMPANIES = {
-  A: { prefix: "a", name: "A公司", adminPwd: "sj" },
+  A: { prefix: "a", name: "A公司", adminPwd: "XS" },
   B: { prefix: "q", name: "Q公司", adminPwd: "gch" }
 };
 
@@ -497,11 +500,14 @@ const DEFAULT_PRODUCTS = {
   X3: { name: "音箱(X3)", processes: [
     {n:"贴电池",p:0.01},
     {n:"贴喇叭",p:0.01},
-    {n:"点板",p:0.18},
+    {n:"贴按键",p:0.015},
     {n:"放按键",p:0.015},
+    {n:"点喇叭",p:0.05},
+    {n:"点板",p:0.1},
     {n:"装电板",p:0.02},
-    {n:"装内外壳+听机",p:0.12},
-    {n:"打螺丝×挂胶",p:0.04}
+    {n:"组装",p:0.1},
+    {n:"打螺丝",p:0.015},
+    {n:"贴硅胶",p:0.015}
   ]},
   F9: { name: "头弓耳机(F9)", processes: [
     {n:"穿线",p:0.02},
@@ -514,6 +520,19 @@ const DEFAULT_PRODUCTS = {
   ]}
 };
 
+// 各公司预设员工（修改此处后改版本号，下次登录自动覆盖）
+const EMP_VERSION = "20260325-1";
+const DEFAULT_EMPS = {
+  A: [
+    {id:"A001", name:"张三"},
+    {id:"A002", name:"李四"}
+  ],
+  B: [
+    {id:"Q001", name:"张三"},
+    {id:"Q002", name:"李四"}
+  ]
+};
+
 // 加载指定公司的数据
 function loadData(companyCode){
   const storageKey = getStorageKey(companyCode);
@@ -523,13 +542,20 @@ function loadData(companyCode){
   } else {
     // 初始化新公司数据
     data = {
-      emps: [{id:companyCode+"001",name:""},{id:companyCode+"002",name:""},{id:companyCode+"003",name:""}],
+      emps: DEFAULT_EMPS[companyCode] ? JSON.parse(JSON.stringify(DEFAULT_EMPS[companyCode])) : [],
       records: {},
       products: DEFAULT_PRODUCTS,
       batches: [],
       batchSeq: {},
       regSeq: 0
     };
+    localStorage.setItem(storageKey, JSON.stringify(data));
+  }
+
+  // 员工列表版本检测：版本不匹配则强制覆盖员工列表（不影响其他数据）
+  if(data._empVersion !== EMP_VERSION && DEFAULT_EMPS[companyCode]){
+    data.emps = JSON.parse(JSON.stringify(DEFAULT_EMPS[companyCode]));
+    data._empVersion = EMP_VERSION;
     localStorage.setItem(storageKey, JSON.stringify(data));
   }
 
@@ -554,7 +580,7 @@ function showToast(message, type = 'info', duration = 2500){
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  toast.textContent = message;
+  toast.innerText = message;
   container.appendChild(toast);
   
   // 触发动画
@@ -602,10 +628,12 @@ function login(){
       loadData(code);
       document.getElementById('loginPage').style.display = 'none';
       document.getElementById('adminPage').style.display = 'block';
+      document.getElementById('adminBar').style.display = 'block';
       document.querySelectorAll('.logout-float').forEach(el => el.style.display = '');
       document.getElementById('adminTitle').textContent = info.name + ' 管理员面板';
       showAdmin('summary');
-      showToast(`${getGreeting()} ${info.name} 管理员，登录成功`, 'success');
+      setTimeout(adjustAdminPadding, 50); // 等待渲染完毕后精确计算
+      showToast(`登录成功！\n祝老板发大财！`, 'success');
       return;
     }
   }
@@ -648,6 +676,7 @@ function logout(){
   currentCompany = "";
   document.getElementById('loginPage').style.display = 'block';
   document.getElementById('adminPage').style.display = 'none';
+  document.getElementById('adminBar').style.display = 'none';
   document.getElementById('empPage').style.display = 'none';
   document.getElementById('loginInput').value = '';
   document.querySelectorAll('.logout-float').forEach(el => el.style.display = 'none');
@@ -665,10 +694,19 @@ function hideAll(){
 function show(id){ document.getElementById(id).style.display = 'block'; }
 
 // ==================== 管理员功能 ====================
+// 动态计算顶部固定栏高度并设置内容区偏移
+function adjustAdminPadding(){
+  const bar = document.getElementById('adminBar');
+  if(!bar) return;
+  const h = bar.getBoundingClientRect().height;
+  document.getElementById('adminPage').style.paddingTop = (h + 10) + 'px';
+}
+window.addEventListener('resize', adjustAdminPadding);
 function showAdmin(tab){
   hideAll();
   show('adminPage');
   show('admin'+tab.charAt(0).toUpperCase()+tab.slice(1));
+  adjustAdminPadding();
   // 概要内容默认隐藏，点击才显示
   document.getElementById('adminSummary').style.display = 'none';
   rebuildProdSelect();
@@ -1190,23 +1228,23 @@ function adminLoadSummary(){
   // —— 本月 ——
   document.getElementById('svThisMonthLabel').textContent = `${currentYear}年${currentMonth}月`;
   document.getElementById('summaryContent').innerHTML = renderKpiGrid(
-    '在库数量', inQty, '件',
-    '出库数量', outQty, '件',
+    '在库', inQty, '件',
+    '出库', outQty, '件',
     profit.toFixed(2), wageTotal.toFixed(2)
   );
 
   // —— 上月 ——
   document.getElementById('svLastMonthLabel').textContent = `${lastYear}年${lastMonth}月`;
   document.getElementById('summaryLastContent').innerHTML = renderKpiGrid(
-    '入库数量', lastInQty, '件',
-    '出库数量', lastOutQty, '件',
+    '入库', lastInQty, '件',
+    '出库', lastOutQty, '件',
     lastProfit.toFixed(2), lastWageTotal.toFixed(2)
   );
 
   // —— 累计 ——
   document.getElementById('summaryAllContent').innerHTML = renderKpiGrid(
-    '总入库', allInQty, '件',
-    '总出库', allOutQty, '件',
+    '入库', allInQty, '件',
+    '出库', allOutQty, '件',
     allProfit.toFixed(2), allWageTotal.toFixed(2)
   );
 }
@@ -1945,7 +1983,7 @@ function adminRegister(){
     .sort((a, b) => a.createTime.localeCompare(b.createTime))[0];
 
   if(!batch){
-    showModal({title:'提示', msg:'请联系老板创建入库信息，谢谢！'});
+    showModal({title:'提示', msg:'请找老板入库，谢谢！'});
     return;
   }
 
@@ -2020,7 +2058,7 @@ function empAdd(){
     .sort((a, b) => a.createTime.localeCompare(b.createTime))[0];
 
   if(!batch){
-    showModal({title:'提示', msg:'请联系老板创建入库信息，谢谢！'});
+    showModal({title:'提示', msg:'请找老板入库，谢谢！'});
     return;
   }
 
