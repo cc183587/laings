@@ -29,22 +29,57 @@ Write-Host "已复制到剪贴板: $copyText"
 # === 自动更新跳转页面的默认地址并推送到 GitHub ===
 $redirectPage = "$PSScriptRoot\redirect-page\index.html"
 $repoPath = $PSScriptRoot
-if (Test-Path $redirectPage -and $url) {
+$pushMsg = ""
+
+if ((Test-Path $redirectPage) -and $url) {
     try {
         $content = Get-Content $redirectPage -Raw -Encoding UTF8
         # 替换 defaultUrl 为当前 Cpolar 地址（去掉 /index.html 后缀）
         $cpolarBase = $url -replace "/index.html$", ""
-        $newContent = $content -replace "defaultUrl:\s*'[^']*'", "defaultUrl: '$cpolarBase'"
-        Set-Content $redirectPage $newContent -Encoding UTF8 -NoNewline
-        Write-Host "已更新跳转页面默认地址: $cpolarBase"
         
-        # 推送到 GitHub
-        Write-Host "正在推送到 GitHub..."
-        $gitOutput = & git -C $repoPath add redirect-page/index.html 2>&1
-        $gitOutput = & git -C $repoPath commit -m "auto: update cpolar url to $cpolarBase" 2>&1
-        $gitOutput = & git -C $repoPath push 2>&1
-        Write-Host "推送完成"
-        $pushMsg = "GitHub 跳转页面已更新，约1分钟后生效"
+        # 检查地址是否真的变化了
+        $currentMatch = [regex]::Match($content, "defaultUrl:\s*'([^']*)")
+        $currentUrl = if ($currentMatch.Success) { $currentMatch.Groups[1].Value } else { "" }
+        
+        if ($currentUrl -eq $cpolarBase) {
+            Write-Host "Cpolar 地址未变化: $cpolarBase"
+            $pushMsg = "地址未变化，无需更新"
+        } else {
+            $newContent = $content -replace "defaultUrl:\s*'[^']*'", "defaultUrl: '$cpolarBase'"
+            Set-Content $redirectPage $newContent -Encoding UTF8 -NoNewline
+            Write-Host "已更新跳转页面默认地址: $cpolarBase"
+            
+            # 推送到 GitHub（带重试）
+            Write-Host "正在推送到 GitHub..."
+            $maxRetries = 3
+            $pushSuccess = $false
+            
+            for ($i = 1; $i -le $maxRetries; $i++) {
+                try {
+                    & git -C $repoPath add redirect-page/index.html 2>&1 | Out-Null
+                    & git -C $repoPath commit -m "auto: update cpolar url to $cpolarBase" 2>&1 | Out-Null
+                    $pushResult = & git -C $repoPath push 2>&1
+                    
+                    if ($pushResult -match "error|fatal|rejected|timeout" -or $LASTEXITCODE -ne 0) {
+                        Write-Host "推送失败 (尝试 $i/$maxRetries): $pushResult"
+                        if ($i -lt $maxRetries) { Start-Sleep -Seconds 2 }
+                    } else {
+                        Write-Host "推送成功!"
+                        $pushSuccess = $true
+                        break
+                    }
+                } catch {
+                    Write-Host "推送异常 (尝试 $i/$maxRetries): $_"
+                    if ($i -lt $maxRetries) { Start-Sleep -Seconds 2 }
+                }
+            }
+            
+            if ($pushSuccess) {
+                $pushMsg = "GitHub 跳转页面已更新，约1分钟后生效"
+            } else {
+                $pushMsg = "本地文件已更新，但推送到 GitHub 失败，请检查网络"
+            }
+        }
     } catch {
         Write-Host "更新或推送失败: $_"
         $pushMsg = "本地文件已更新，但推送到 GitHub 失败"
