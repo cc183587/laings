@@ -101,6 +101,31 @@
             text-decoration: underline;
         }
         
+        .lan-url {
+            background: #f0f8ff;
+            border: 1px solid #90caf9;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #555;
+            word-break: break-all;
+        }
+        
+        .lan-url a {
+            color: #1976d2;
+            text-decoration: none;
+        }
+        
+        .lan-url a:hover {
+            text-decoration: underline;
+        }
+        
+        .lan-label {
+            color: #666;
+            margin-right: 4px;
+        }
+        
         .admin-section {
             border-top: 1px solid #eee;
             padding-top: 24px;
@@ -284,6 +309,9 @@
             <div class="current-url">
                 目标地址：<a id="targetUrl" href="#">加载中...</a>
             </div>
+            <div class="lan-url" id="lanUrlBox" style="display: none;">
+                <span class="lan-label">局域网：</span><a id="lanUrl" href="#">-</a>
+            </div>
             <div class="countdown" id="countdown">3 秒后自动跳转</div>
             <div class="manual-link">
                 <a id="manualLink" href="#">如果没有自动跳转，请点击这里</a>
@@ -333,6 +361,8 @@
             statusBox: document.getElementById('statusBox'),
             statusText: document.getElementById('statusText'),
             targetUrl: document.getElementById('targetUrl'),
+            lanUrlBox: document.getElementById('lanUrlBox'),
+            lanUrl: document.getElementById('lanUrl'),
             countdown: document.getElementById('countdown'),
             manualLink: document.getElementById('manualLink'),
             adminToggle: document.getElementById('adminToggle'),
@@ -343,6 +373,26 @@
             testBtn: document.getElementById('testBtn'),
             message: document.getElementById('message')
         };
+        
+        // 获取局域网地址
+        function getLanUrl() {
+            const currentHost = window.location.hostname;
+            const currentPort = window.location.port;
+            const port = currentPort ? ':' + currentPort : '';
+            
+            // 如果当前是通过 IP 访问的，则使用当前地址作为局域网地址
+            if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(currentHost)) {
+                return `http://${currentHost}${port}`;
+            }
+            
+            // 如果是 localhost，也显示当前地址
+            if (currentHost === 'localhost') {
+                return `http://localhost${port}`;
+            }
+            
+            // 其他情况（如 cpolar 域名）不显示局域网地址
+            return null;
+        }
         
         // 获取保存的 URL
         function getSavedUrl() {
@@ -487,6 +537,14 @@
         function init() {
             const currentUrl = getSavedUrl();
             updateStatus(currentUrl);
+            
+            // 显示局域网地址（如果有）
+            const lanUrl = getLanUrl();
+            if (lanUrl) {
+                elements.lanUrl.textContent = lanUrl;
+                elements.lanUrl.href = lanUrl;
+                elements.lanUrlBox.style.display = 'block';
+            }
             
             // 预填当前地址到输入框
             elements.newUrl.value = currentUrl;
