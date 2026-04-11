@@ -102,8 +102,8 @@
         }
         
         .lan-url {
-            background: #f0f8ff;
-            border: 1px solid #90caf9;
+            background: #e8f5e9;
+            border: 1px solid #81c784;
             border-radius: 8px;
             padding: 10px;
             margin-top: 10px;
@@ -113,7 +113,7 @@
         }
         
         .lan-url a {
-            color: #1976d2;
+            color: #388e3c;
             text-decoration: none;
         }
         
@@ -310,7 +310,7 @@
                 目标地址：<a id="targetUrl" href="#">加载中...</a>
             </div>
             <div class="lan-url" id="lanUrlBox" style="display: none;">
-                <span class="lan-label">局域网：</span><a id="lanUrl" href="#">-</a>
+                <span class="lan-label">🌐 局域网访问：</span><a id="lanUrl" href="#">-</a>
             </div>
             <div class="countdown" id="countdown">3 秒后自动跳转</div>
             <div class="manual-link">
@@ -393,7 +393,12 @@
             }
             
             // 其他情况（外网访问）显示配置的固定局域网地址
-            return CONFIG.fixedLanUrl;
+            // 如果 fixedLanUrl 已配置，则返回它
+            if (CONFIG.fixedLanUrl) {
+                return CONFIG.fixedLanUrl;
+            }
+            
+            return null;
         }
         
         // 获取保存的 URL
@@ -542,7 +547,7 @@
             
             // 显示局域网地址（如果有）
             const lanUrl = getLanUrl();
-            if (lanUrl) {
+            if (lanUrl && lanUrl !== currentUrl) {
                 elements.lanUrl.textContent = lanUrl;
                 elements.lanUrl.href = lanUrl;
                 elements.lanUrlBox.style.display = 'block';
@@ -551,7 +556,7 @@
             // 预填当前地址到输入框
             elements.newUrl.value = currentUrl;
             
-            // 开始倒计时跳转
+            // 开始倒计时跳转（始终跳转到Cpolar地址）
             startCountdown(currentUrl);
         }
         
