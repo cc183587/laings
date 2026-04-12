@@ -581,6 +581,7 @@
       <select id="regEmp">
         <option value="">-- 选择员工 --</option>
       </select>
+      <span id="regEmpName" style="margin-left:8px;color:#6366f1;font-weight:600;"></span>
       <select id="regProd">
         <option value="">-- 选择产品 --</option>
       </select>
@@ -639,7 +640,8 @@ function showModal({title='', msg='', hasInput=false, inputDefault='', confirmTe
     inp.style.display = 'none';
   }
   document.getElementById('customModalConfirm').textContent = confirmText;
-  document.getElementById('customModalConfirm').className = danger ? 'danger' : '';
+  const confirmBtn = document.getElementById('customModalConfirm');
+  confirmBtn.className = 'modal-btn modal-confirm' + (danger ? ' danger' : '');
   document.getElementById('customModalCancel').textContent = cancelText;
   document.getElementById('customModalCancel').style.display = hideCancel ? 'none' : '';
   document.getElementById('customModal').classList.add('show');
@@ -857,9 +859,9 @@ async function loadData(companyCode){
   };
 }
 
-// saveData 在新架构下不再整体保存，各操作直接调用 API
-// 保留此函数避免现有调用报错（空操作）
-function saveData(){ /* 数据已通过 API 实时保存，无需整体存储 */ }
+
+
+
 
 
 function showToast(message, type = 'info', duration = 2500){
@@ -1023,7 +1025,6 @@ async function showAdmin(tab){
     await adminLoadRecord();
   }
   if(tab === 'total') await adminLoadTotal();
-  if(tab === 'summary') adminLoadSummary();
 }
 
 async function adminAddEmp(){
@@ -1079,7 +1080,7 @@ async function adminLoadRecord(){
   const dateFilter = document.getElementById('recordDate').value;
 
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   const thisMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   
   let todayTotal = 0;
@@ -1302,7 +1303,8 @@ function switchSvTab(tab){
 
 // 凌晨5点后才算新的一天（北京时间，仅用于总览统计）
 function getWorkDate(dateObj){
-  const now = dateObj || new Date();
+  // 复制一份，避免修改外部传入的 Date 对象（副作用 BUG）
+  const now = new Date(dateObj || new Date());
   // 如果是凌晨0-4点，算作前一天
   if(now.getHours() < 5){
     now.setDate(now.getDate() - 1);
@@ -1906,8 +1908,8 @@ function adminLoadBatchList(){
         <tr>
           <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#495057;text-align:center">第${i+1}次</td>
           <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-weight:600;text-align:center">${d.qty} 件</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#10B981;text-align:center">¥${d.cost.toFixed(2)}</td>
-          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#dc2626;text-align:center">¥${d.profit.toFixed(2)}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#10B981;text-align:center">¥${(d.cost||0).toFixed(2)}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#dc2626;text-align:center">¥${(d.profit||0).toFixed(2)}</td>
           <td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#999;text-align:center">${d.date}</td>
         </tr>`).join('');
       deliveriesHtml = `
@@ -2440,7 +2442,7 @@ function empShow(){
   }
 
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   const thisMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   
   let todayTotal = 0;
