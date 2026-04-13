@@ -107,9 +107,17 @@ export function initDb() {
     CREATE TABLE IF NOT EXISTS settings (
       company_code    TEXT PRIMARY KEY,
       serverchan_key  TEXT,
+      colors          TEXT,
       updated_at      TEXT
     );
   `);
+
+  // 数据库迁移：为 settings 表添加 colors 列
+  try {
+    db.exec(`ALTER TABLE settings ADD COLUMN colors TEXT`);
+  } catch(e) {
+    // 列已存在，忽略错误
+  }
 
   // 数据库迁移：如果 processes 表没有 remark 列则添加
   try {

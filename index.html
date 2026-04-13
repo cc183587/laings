@@ -302,8 +302,60 @@
   .amount-value{font-size:18px;font-weight:700;color:#4F46E5}
   .amount-unit{font-size:12px;color:#718096}
 
-  /* 产品管理卡片样式 */
-  .process-card{background:#F8F9FA;border-radius:8px;padding:20px;margin:10px 0;border:1px solid #E9ECEF;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow-x:auto}
+  /* 产品管理卡片样式 - 简洁风格 */
+  .product-wrapper{background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+  .product-wrapper.hidden{opacity:0.6}
+  
+  /* 产品头部 */
+  .product-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .product-img{width:60px;height:60px;border-radius:10px;object-fit:cover;background:#f5f5f5;border:1px solid #e0e0e0}
+  .product-img-placeholder{width:60px;height:60px;border-radius:10px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;color:#999;font-size:24px;cursor:pointer;border:1px dashed #ccc}
+  .product-info{flex:1}
+  .product-name{font-size:17px;font-weight:600;color:#333}
+  .product-status{font-size:12px;color:#888;margin-top:2px}
+  .btn-hide{font-size:12px;padding:5px 12px;background:#fff3e0;color:#f57c00;border:none;border-radius:15px;cursor:pointer;white-space:nowrap}
+  .btn-show{font-size:12px;padding:5px 12px;background:#e8f5e9;color:#4caf50;border:none;border-radius:15px;cursor:pointer;white-space:nowrap}
+  .btn-rename{font-size:12px;padding:5px 12px;background:#e3f2fd;color:#2196f3;border:none;border-radius:15px;cursor:pointer;white-space:nowrap}
+  .btn-del-prod{font-size:12px;padding:5px 12px;background:#ffebee;color:#f44336;border:none;border-radius:15px;cursor:pointer;white-space:nowrap}
+  
+  /* 工序卡片网格 */
+  .process-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+  
+  /* 工序卡片 */
+  .process-card{background:#f8f9fa;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:5px;border:1px solid #e9ecef;cursor:pointer;transition:all 0.2s;text-align:center}
+  .process-card:hover{background:#f0f4f8}
+  .process-card.active{background:#e3f2fd;border-color:#2196f3}
+  
+  /* 工序名称 */
+  .process-name{font-size:14px;font-weight:600;color:#333;line-height:1.3}
+  
+  /* 工序备注 */
+  .process-remark{font-size:11px;color:#888;font-weight:400;margin-top:2px}
+  
+  /* 工序价格 */
+  .process-price{font-size:13px;font-weight:600;color:#2196f3;margin-bottom:3px}
+  
+  /* 按钮区域 - 默认隐藏 */
+  .process-actions{display:none;gap:6px;margin-top:4px}
+  .process-card.active .process-actions{display:flex}
+  .btn-edit{flex:1;font-size:12px;padding:6px 0;background:#64b5f6;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:500}
+  .btn-del{flex:1;font-size:12px;padding:6px 0;background:#ef5350;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:500}
+  
+  /* +工序卡片 */
+  .add-process-card{background:#f8f9fa;border:2px dashed #bdbdbd;border-radius:10px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;min-height:90px}
+  .add-process-card .plus-icon{font-size:28px;color:#757575}
+  .add-process-card .add-text{font-size:13px;color:#757575;font-weight:500}
+  
+  /* 编辑状态 */
+  .process-card.editing{background:#f5f5f5;border:1px solid #2196f3}
+  .edit-form{display:flex;flex-direction:column;gap:8px}
+  .edit-form input{font-size:13px;padding:8px;border:1px solid #ddd;border-radius:6px;outline:none}
+  .edit-form input:focus{border-color:#2196f3}
+  .edit-actions{display:flex;gap:6px}
+  .btn-save{flex:1;font-size:12px;padding:6px 0;background:#64b5f6;color:#fff;border:none;border-radius:5px;cursor:pointer}
+  .btn-cancel{flex:1;font-size:12px;padding:6px 0;background:#ddd;color:#666;border:none;border-radius:5px;cursor:pointer}
+  
+  /* 旧样式兼容 */
   .detail-item{display:flex;align-items:center;font-size:13px;padding:10px 0;border-bottom:1px dashed #E0E6ED}
   .detail-item:last-child{border-bottom:none}
   .detail-left,.detail-right{flex:1;min-width:100px;text-align:center;padding:0 4px;color:#495057}
@@ -553,17 +605,39 @@
       <div id="serverchanStatus" style="margin-top:15px;font-size:13px"></div>
     </div>
     
+    <!-- 颜色管理 -->
     <div class="box" style="max-width:480px;margin:15px auto 0">
-      <h4 style="margin:0 0 10px 0;color:#333">📖 使用说明</h4>
-      <ol style="font-size:13px;color:#666;line-height:1.8;padding-left:18px;margin:0">
-        <li>访问 <a href="https://sct.ftqq.com" target="_blank" style="color:#1890ff">sct.ftqq.com</a> 登录账号</li>
-        <li>关注 "方糖气球" 微信公众号</li>
-        <li>在官网获取您的 SendKey</li>
-        <li>将 SendKey 填入上方输入框并保存</li>
-        <li>点击"测试推送"验证配置是否正确</li>
-        <li>配置成功后，员工登记产量时将自动收到微信提醒</li>
-      </ol>
+      <h3 style="margin:0 0 15px 0;color:#333">🎨 产品颜色管理</h3>
+      <p style="color:#666;font-size:13px;margin-bottom:15px">管理产品可选的颜色，用于批次管理。</p>
+      
+      <!-- 颜色列表 -->
+      <div id="colorList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px">
+        <!-- 颜色标签由JS动态生成 -->
+      </div>
+      
+      <!-- 添加颜色 -->
+      <div style="display:flex;gap:8px;margin-bottom:15px">
+        <input type="text" id="newColorName" placeholder="颜色名称（如：红色）" style="flex:1;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:6px">
+        <select id="newColorValue" style="flex:1;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          <option value="#ff6b6b">🔴 红</option>
+          <option value="#4ecdc4">🟢 青</option>
+          <option value="#45b7d1">🔵 蓝</option>
+          <option value="#ffe66d">🟡 黄</option>
+          <option value="#a55eea">🟣 紫</option>
+          <option value="#fd79a8">🩷 粉</option>
+          <option value="#fdcb6e">🟠 橙</option>
+          <option value="#636e72">⚫ 黑</option>
+          <option value="#b2bec3">⚪ 白</option>
+          <option value="#8B4513">🟤 棕</option>
+        </select>
+        <button class="btn" onclick="addColor()" style="background:#1890ff;flex:0.5">添加</button>
+      </div>
+      
+      <div style="display:flex;gap:10px">
+        <button class="btn" onclick="saveColors()" style="flex:1">保存颜色</button>
+      </div>
     </div>
+    
   </div>
 
   <!-- 产品管理 -->
@@ -731,7 +805,8 @@ async function checkAndRestoreSession() {
       document.querySelectorAll('.logout-float').forEach(el => el.style.display = '');
       document.getElementById('adminTitle').textContent = COMPANIES[currentCompany]?.name + ' 管理员面板';
       // 显示退出按钮
-      document.querySelector('.logout-btn').style.display = 'block';
+      const logoutBtn = document.querySelector('.logout-btn');
+      if (logoutBtn) logoutBtn.style.display = 'block';
       // 跳转到之前保存的tab
       await showAdmin(currentTab);
       setTimeout(adjustAdminPadding, 50);
@@ -742,7 +817,8 @@ async function checkAndRestoreSession() {
       document.querySelectorAll('.logout-float').forEach(el => el.style.display = '');
       document.getElementById('empTitle').textContent = '员工产量登记';
       // 显示退出按钮
-      document.querySelector('.logout-btn').style.display = 'block';
+      const logoutBtn = document.querySelector('.logout-btn');
+      if (logoutBtn) logoutBtn.style.display = 'block';
       rebuildProdSelect();
       document.getElementById('empResult').innerHTML = '';
       const greeting = getGreeting();
@@ -923,7 +999,8 @@ async function login(){
     document.querySelectorAll('.logout-float').forEach(el => el.style.display = '');
     document.getElementById('adminTitle').textContent = result.companyName + ' 管理员面板';
     // 显示退出按钮
-    document.querySelector('.logout-btn').style.display = 'block';
+    const logoutBtn = document.querySelector('.logout-btn');
+    if (logoutBtn) logoutBtn.style.display = 'block';
     await showAdmin('summary');
     setTimeout(adjustAdminPadding, 50);
     showToast(`登录成功！\n祝老板发大财！`, 'success');
@@ -947,8 +1024,9 @@ async function login(){
       ? `${greeting} ${result.empName} 同学` : greeting;
     showToast(`登录成功`, 'success');
     // 显示退出按钮
-    document.querySelector('.logout-btn').style.display = 'block';
-    
+    const logoutBtn2 = document.querySelector('.logout-btn');
+    if (logoutBtn2) logoutBtn2.style.display = 'block';
+
     // 保存登录状态
     saveLoginSession(result.empId, result.companyCode, 'employee');
     return;
@@ -968,8 +1046,9 @@ function logout(){
   document.getElementById('loginInput').value = '';
   document.querySelectorAll('.logout-float').forEach(el => el.style.display = 'none');
   // 隐藏退出按钮
-  document.querySelector('.logout-btn').style.display = 'none';
-  
+  const logoutBtn = document.querySelector('.logout-btn');
+  if (logoutBtn) logoutBtn.style.display = 'none';
+
   // 清除登录状态
   clearLoginSession();
 }
@@ -1013,7 +1092,11 @@ async function showAdmin(tab){
   if(tab === 'emp') adminLoadEmpList();
   if(tab === 'register') adminInitRegister();
   if(tab === 'product') adminLoadProductList();
-  if(tab === 'batch') adminLoadBatchList();
+  if(tab === 'batch') {
+    await loadColors(); // 先加载系统设置的颜色
+    rebuildColorSelect(); // 再刷新颜色下拉框
+    adminLoadBatchList();
+  }
   if(tab === 'record') {
     // 填充员工下拉
     const empSel = document.getElementById('recordEmpId');
@@ -1064,7 +1147,8 @@ function adminLoadEmpList(){
 }
 
 async function adminDelEmp(id){
-  if(!confirm('确定删除员工 '+id+'？')) return;
+  const confirmed = await showModal({title:'删除确认', msg:'确定删除员工 '+id+'？', danger:true});
+  if(!confirmed) return;
   try {
     await apiFetch(`/api/companies/${currentCompany}/employees/${id}`, { method: 'DELETE' });
     data.emps = data.emps.filter(e => e.id !== id);
@@ -1266,11 +1350,12 @@ async function backupData(){
 }
 
 // 数据恢复函数
-function restoreData(input){
+async function restoreData(input){
   const file = input.files[0];
   if(!file) return;
   
-  if(!confirm('恢复数据将覆盖当前所有数据，确定要继续吗？')){
+  const confirmed = await showModal({title:'数据恢复确认', msg:'恢复数据将覆盖当前所有数据，确定要继续吗？', danger:true});
+  if(!confirmed){
     input.value = '';
     return;
   }
@@ -1525,7 +1610,7 @@ async function adminLoadTotal(){
 
 async function adminAddProduct(){
   const name = document.getElementById('newProdName').value.trim();
-  if(!name){ alert('请填写产品名称'); return; }
+  if(!name){ showToast('请填写产品名称', 'error'); return; }
   const key = Date.now().toString(); // 自动生成唯一ID
   try {
     await apiFetch(`/api/companies/${currentCompany}/products`, {
@@ -1547,93 +1632,163 @@ function adminLoadProductList(){
   const html = sortedKeys.map(k => {
     const prod = data.products[k];
     const isHidden = !!prod.hidden;
-    const cardOpacity = isHidden ? 'opacity:0.55;' : '';
-    const procRows = prod.processes.map(p => `
-      <div class="detail-item">
-        <div class="detail-left">
+    
+    // 工序卡片网格
+    const procCards = prod.processes.map((p, idx) => `
+      <div class="process-card" id="proc_${k}_${idx}" onclick="toggleProcCard('${k}',${idx},event)">
+        <div class="process-name">
           ${p.n}
-          ${p.r ? `<div style="font-size:11px;color:#aaa;margin-top:2px">${p.r}</div>` : ''}
+          ${p.r ? `<div class="process-remark">${p.r}</div>` : ''}
         </div>
-        <div class="detail-right">${p.p} 元</div>
-      </div>`).join('') || `
-      <div class="detail-item">
-        <div class="detail-left" style="color:#bbb">暂无工序</div>
-        <div class="detail-right"></div>
-      </div>`;
-    return `
-    <div class="process-card" style="${cardOpacity}">
-      <!-- 产品名称行 -->
-      <div class="detail-item">
-        <div class="detail-left" style="font-size:16px;font-weight:600;color:${isHidden ? '#aaa' : '#212529'};display:flex;align-items:center;gap:8px">
-          ${prod.name}
-          ${isHidden ? '<span style="font-size:11px;font-weight:400;background:#f0f0f0;color:#999;padding:2px 7px;border-radius:10px;border:1px solid #e0e0e0">已隐藏</span>' : ''}
-        </div>
-        <div class="detail-right" style="display:flex;align-items:center;gap:6px">
-          <span class="proc-opt-btn" style="${isHidden ? 'background:#E6F9EE;color:#22c55e' : 'background:#FFF3CD;color:#856404'}" onclick="toggleProductHidden('${k}')">${isHidden ? '👁 显示' : '🚫 隐藏'}</span>
-          <span class="proc-opt-btn" style="background:#E0E7FF;color:#3B82F6" onclick="editProductName('${k}')">编辑</span>
+        <div class="process-price">¥${p.p}</div>
+        <div class="process-actions" onclick="event.stopPropagation()">
+          <button class="btn-edit" onclick="editProcInline('${k}',${idx})">编辑</button>
+          <button class="btn-del" onclick="delProc('${k}',${idx})">删除</button>
         </div>
       </div>
-      <!-- 产品图片和工序区域（点击隐藏后折叠） -->
-      <div id="prodContent_${k}" style="${isHidden ? 'display:none' : ''}">
-      <div style="margin:8px 0 12px;display:flex;align-items:flex-start;gap:12px">
-        <div id="prodImgBox_${k}" style="width:90px;height:90px;border-radius:8px;overflow:hidden;border:1.5px dashed #d0d5dd;background:#f8f9fa;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer" onclick="document.getElementById('prodImgInput_${k}').click()" title="点击上传图片">
-          ${prod.image
-            ? `<img src="${prod.image}" style="width:100%;height:100%;object-fit:cover" alt="${prod.name}">`
-            : `<div style="text-align:center;color:#bbb;font-size:12px;line-height:1.4;pointer-events:none">📷<br>点击上传</div>`
-          }
+    `).join('');
+    
+    // +工序卡片
+    const addCard = isHidden ? '' : `
+      <div class="add-process-card" onclick="showAddProcessForm('${k}')">
+        <div class="plus-icon">+</div>
+        <div class="add-text">添加工序</div>
+      </div>
+    `;
+    
+    return `
+    <div class="product-wrapper ${isHidden ? 'hidden' : ''}">
+      <!-- 产品头部 -->
+      <div class="product-header">
+        <div id="prodImgBox_${k}" class="${prod.image ? '' : 'product-img-placeholder'}" onclick="document.getElementById('prodImgInput_${k}').click()" title="点击上传图片">
+          ${prod.image ? `<img src="${prod.image}" class="product-img" alt="${prod.name}">` : '📷'}
         </div>
         <input type="file" id="prodImgInput_${k}" accept="image/*" style="display:none" onchange="uploadProductImage('${k}', this)">
-        <div style="flex:1">
-          <div style="font-size:12px;color:#888;line-height:1.7">
-            <div>点击图片区域上传产品图片</div>
-            <div style="color:#bbb">支持 JPG / PNG，建议500KB以内</div>
-          </div>
-          ${prod.image ? `<span class="proc-opt-btn" style="background:#fff1f0;color:#ff4d4f;margin-top:6px;display:inline-block" onclick="deleteProductImage('${k}')">🗑 删除图片</span>` : ''}
-        </div>
-      </div>
-      <!-- 工序列表 -->
-      ${procRows}
-      <!-- 编辑工序区域（折叠） -->
-      <div id="prodEdit_${k}" style="display:none;padding:12px 0 4px">
-        <div style="font-size:12px;color:#888;margin-bottom:8px;font-weight:600">已有工序</div>
-        <div id="procEditList_${k}">
-          ${prod.processes.length === 0
-            ? `<div style="color:#bbb;font-size:13px;text-align:center;padding:8px 0">暂无工序</div>`
-            : prod.processes.map((p, i) => `
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-                <input type="text" value="${p.n}" id="ep_name_${k}_${i}" placeholder="工序名称" style="flex:1;font-size:13px;padding:6px 8px;border:1px solid #ddd;border-radius:4px;margin:0">
-                <input type="number" step="0.01" value="${p.p}" id="ep_price_${k}_${i}" placeholder="单价" style="width:80px;font-size:13px;padding:6px 8px;border:1px solid #ddd;border-radius:4px;margin:0">
-                <input type="text" value="${p.r||''}" id="ep_remark_${k}_${i}" placeholder="备注" style="width:80px;font-size:13px;padding:6px 8px;border:1px solid #ddd;border-radius:4px;margin:0">
-                <button onclick="saveProc('${k}',${i})" style="background:#E0E7FF;color:#3B82F6;border:none;border-radius:4px;padding:6px 8px;font-size:12px;cursor:pointer;white-space:nowrap">保存</button>
-                <button onclick="delProc('${k}',${i})" style="background:#ff3b30;color:#fff;border:none;border-radius:4px;padding:6px 8px;font-size:12px;cursor:pointer;white-space:nowrap">删除</button>
-              </div>`).join('')
-          }
-        </div>
-        <div style="font-size:12px;color:#888;margin:10px 0 8px;font-weight:600;border-top:1px dashed #e0e6ed;padding-top:10px">新增工序</div>
-        <div style="border:1px solid #d0d5dd;border-radius:6px;overflow:hidden;margin-bottom:8px">
-          <div style="display:flex;border-bottom:1px solid #d0d5dd">
-            <input type="text" id="procName_${k}" placeholder="工序名称" style="flex:1;min-width:0;border:none;border-right:1px solid #d0d5dd;border-radius:0;padding:8px 10px;font-size:13px;outline:none;box-sizing:border-box">
-            <input type="number" step="0.01" id="procPrice_${k}" placeholder="单价" style="flex:1;min-width:0;border:none;border-right:1px solid #d0d5dd;border-radius:0;padding:8px 10px;font-size:13px;outline:none;box-sizing:border-box">
-            <input type="text" id="procRemark_${k}" placeholder="备注（选填）" style="flex:1;min-width:0;border:none;border-radius:0;padding:8px 10px;font-size:13px;outline:none;box-sizing:border-box">
-          </div>
-          <div style="text-align:center;padding:6px">
-            <button class="btn" style="margin:0;width:100%;background:#007AFF;color:#fff;border:none;font-size:13px;padding:7px 0;border-radius:4px;cursor:pointer" onclick="addProcess('${k}')">确认添加</button>
+        <div class="product-info" style="flex:1">
+          ${(() => {
+            const totalPrice = prod.processes.reduce((sum, p) => sum + (parseFloat(p.p) || 0), 0);
+            return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="product-name">${prod.name}</span>
+            <span style="font-size:13px;color:#888;margin-left:auto">${prod.processes.length}个工序 · ${totalPrice.toFixed(2)}元${isHidden ? ' · 已隐藏' : ''}</span>
+          </div>`;
+          })()}
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="${isHidden ? 'btn-show' : 'btn-hide'}" onclick="toggleProductHidden('${k}')">${isHidden ? '👁 显示' : '🚫 隐藏'}</button>
+            <button class="btn-rename" onclick="editProductName('${k}')">✏️ 改名</button>
+            <button class="btn-del-prod" onclick="adminDelProduct('${k}')">🗑️ 删除</button>
           </div>
         </div>
       </div>
-        <!-- 操作按钮行 -->
-        <div class="detail-item">
-          <div class="detail-left">
-            <span class="proc-opt-btn proc-edit-btn" onclick="toggleEditProcess('${k}')">编辑工序</span>
+      
+      <!-- 工序网格 -->
+      <div id="prodContent_${k}" style="${isHidden ? 'display:none' : ''}">
+        <div class="process-grid" id="procGrid_${k}">
+          ${procCards || '<div style="grid-column:1/-1;color:#bbb;font-size:13px;text-align:center;padding:20px">暂无工序，点击"+"添加</div>'}
+          ${addCard}
+        </div>
+        
+        <!-- 添加工序表单（默认隐藏） -->
+        <div id="addProcForm_${k}" style="display:none;margin-top:12px;padding:12px;background:#f5f5f5;border-radius:10px;border:1px solid #e0e0e0">
+          <div style="font-size:12px;color:#2196f3;margin-bottom:8px;font-weight:600">➕ 新增工序</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <input type="text" id="procName_${k}" placeholder="工序名称" style="flex:0.8;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:6px">
+            <input type="number" step="0.01" id="procPrice_${k}" placeholder="单价" style="width:80px;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:6px">
+            <input type="text" id="procRemark_${k}" placeholder="备注（选填）" style="flex:1;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:6px">
           </div>
-          <div class="detail-right">
-            <span class="proc-opt-btn proc-del-btn" onclick="adminDelProduct('${k}')">删除产品</span>
+          <div style="display:flex;gap:8px">
+            <button onclick="addProcess('${k}')" style="flex:1;padding:8px;background:#87ceeb;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer">确认添加</button>
+            <button onclick="hideAddProcessForm('${k}')" style="flex:1;padding:8px;background:#ddd;color:#666;border:none;border-radius:6px;font-size:13px;cursor:pointer">取消</button>
           </div>
         </div>
       </div>
     </div>`;
   }).join('');
   document.getElementById('adminProductList').innerHTML = html || '<p style="color:#999;text-align:center;padding:20px">暂无产品</p>';
+}
+
+// 显示添加工序表单
+function showAddProcessForm(k) {
+  const form = document.getElementById('addProcForm_' + k);
+  if (form) form.style.display = 'block';
+}
+
+// 隐藏添加工序表单
+function hideAddProcessForm(k) {
+  const form = document.getElementById('addProcForm_' + k);
+  if (form) {
+    form.style.display = 'none';
+    document.getElementById('procName_' + k).value = '';
+    document.getElementById('procPrice_' + k).value = '';
+    document.getElementById('procRemark_' + k).value = '';
+  }
+}
+
+// 切换工序卡片选中状态
+function toggleProcCard(k, idx, event) {
+  // 如果点击的是按钮区域，不处理
+  if (event.target.closest('.process-actions')) return;
+  
+  const cardId = 'proc_' + k + '_' + idx;
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  
+  // 先取消所有同产品下其他卡片的选中状态
+  const grid = document.getElementById('procGrid_' + k);
+  if (grid) {
+    grid.querySelectorAll('.process-card').forEach(c => {
+      if (c.id !== cardId) c.classList.remove('active');
+    });
+  }
+  
+  // 切换当前卡片状态
+  card.classList.toggle('active');
+}
+
+// 内联编辑工序
+function editProcInline(k, idx) {
+  const p = data.products[k].processes[idx];
+  const card = document.getElementById('proc_' + k + '_' + idx);
+  if (!card) return;
+  
+  card.classList.add('editing');
+  card.innerHTML = `
+    <div class="edit-form">
+      <input type="text" id="edit_name_${k}_${idx}" value="${p.n}" placeholder="工序名称">
+      <input type="number" step="0.01" id="edit_price_${k}_${idx}" value="${p.p}" placeholder="单价">
+      <input type="text" id="edit_remark_${k}_${idx}" value="${p.r || ''}" placeholder="备注（选填）">
+    </div>
+    <div class="edit-actions">
+      <button class="btn-save" onclick="saveProcInline('${k}',${idx})">保存</button>
+      <button class="btn-cancel" onclick="adminLoadProductList()">取消</button>
+    </div>
+  `;
+}
+
+// 保存内联编辑的工序
+async function saveProcInline(k, idx) {
+  const name = document.getElementById('edit_name_' + k + '_' + idx).value.trim();
+  const price = parseFloat(document.getElementById('edit_price_' + k + '_' + idx).value);
+  const remark = document.getElementById('edit_remark_' + k + '_' + idx).value.trim();
+  
+  if (!name) { showToast('请输入工序名称', 'error'); return; }
+  if (isNaN(price) || price < 0) { showToast('请输入有效的单价', 'error'); return; }
+  
+  try {
+    const body = { name, price };
+    if (remark) body.remark = remark;
+    await apiFetch(`/api/companies/${currentCompany}/products/${k}/processes/${data.products[k].processes[idx].id}`, {
+      method: 'PUT',
+      body
+    });
+    data.products[k].processes[idx].n = name;
+    data.products[k].processes[idx].p = price;
+    if (remark) data.products[k].processes[idx].r = remark;
+    else delete data.products[k].processes[idx].r;
+    adminLoadProductList();
+    showToast('✅ 工序已更新', 'success');
+  } catch(e) {
+    showToast('保存失败：' + e.message, 'error');
+  }
 }
 
 // ==================== 产品图片上传 ====================
@@ -1741,7 +1896,8 @@ async function saveProc(prodKey, idx){
 async function delProc(prodKey, idx){
   const proc = data.products[prodKey]?.processes[idx];
   if(!proc) return;
-  if(!confirm(`确定删除工序「${proc.n}」？`)) return;
+  const confirmed = await showModal({title:'删除确认', msg:`确定删除工序「${proc.n}」？`, danger:true});
+  if(!confirmed) return;
   if(!proc.id){ showToast('工序ID缺失，请刷新页面', 'error'); return; }
   try {
     await apiFetch(`/api/companies/${currentCompany}/products/${prodKey}/processes/${proc.id}`, {
@@ -1760,7 +1916,7 @@ async function delProc(prodKey, idx){
 async function addProcess(prodKey){
   const name = document.getElementById(`procName_${prodKey}`).value.trim();
   const price = parseFloat(document.getElementById(`procPrice_${prodKey}`).value);
-  if(!name || isNaN(price)){ alert('请填写工序名称和单价'); return; }
+  if(!name || isNaN(price)){ showToast('请填写工序名称和单价', 'error'); return; }
   const remark = document.getElementById(`procRemark_${prodKey}`).value.trim();
   try {
     const result = await apiFetch(`/api/companies/${currentCompany}/products/${prodKey}/processes`, {
@@ -1808,7 +1964,8 @@ async function editProductName(key){
 }
 
 async function adminDelProduct(key){
-  if(!confirm('确定删除产品？')) return;
+  const confirmed = await showModal({title:'删除确认', msg:'确定删除产品？', danger:true});
+  if(!confirmed) return;
   try {
     await apiFetch(`/api/companies/${currentCompany}/products/${key}`, { method: 'DELETE' });
     delete data.products[key];
@@ -1833,6 +1990,39 @@ function rebuildProdSelect(){
     batchSel.innerHTML += opt;
     regSel.innerHTML += opt;
   });
+  // 同时刷新颜色下拉框
+  rebuildColorSelect();
+}
+
+// 刷新颜色下拉框（从系统设置加载）
+function rebuildColorSelect(){
+  const colorSel = document.getElementById('batchColor');
+  if(!colorSel) return;
+  
+  // 保存当前选中的值
+  const currentValue = colorSel.value;
+  
+  // 重新构建选项
+  let html = '<option value="">-- 选择颜色 --</option>';
+  
+  // 优先使用 currentColors（系统设置中加载的颜色）
+  const colors = (typeof currentColors !== 'undefined' && currentColors.length > 0) 
+    ? currentColors 
+    : ['黑', '白', '粉', '米白', '红']; // 默认颜色
+  
+  colors.forEach(color => {
+    // 支持对象格式 {name, value} 和字符串格式
+    const colorName = typeof color === 'object' && color !== null ? color.name : color;
+    html += `<option value="${colorName}">${colorName}</option>`;
+  });
+  
+  colorSel.innerHTML = html;
+  
+  // 恢复之前选中的值（如果仍在列表中）
+  if(currentValue) {
+    const exists = Array.from(colorSel.options).some(opt => opt.value === currentValue);
+    if(exists) colorSel.value = currentValue;
+  }
 }
 
 // ==================== 批次管理 ====================
@@ -1934,16 +2124,27 @@ function adminLoadBatchList(){
     // 预估利润 = 入库数量 × 单价
     const estimatedProfit = (b.qty || 0) * (b.price || 0);
 
-    // 颜色 badge：根据颜色名称映射底色+文字色
-    const colorMap = {
-      '红':   { bg: '#ef4444', text: '#fff',    border: '#dc2626' },
-      '黑':   { bg: '#1f2937', text: '#fff',    border: '#111827' },
-      '白':   { bg: '#f9fafb', text: '#374151', border: '#d1d5db' },
-      '粉':   { bg: '#fbcfe8', text: '#9d174d', border: '#f9a8d4' },
-      '米白': { bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
+    // 颜色 badge：从 currentColors 获取颜色值，或使用默认映射
+    const getColorStyle = (colorName) => {
+      // 先从 currentColors 查找
+      if (typeof currentColors !== 'undefined' && currentColors.length > 0) {
+        const colorDef = currentColors.find(c => c.name === colorName);
+        if (colorDef && colorDef.value) {
+          return { bg: colorDef.value, text: '#fff', border: colorDef.value };
+        }
+      }
+      // 默认映射
+      const colorMap = {
+        '红':   { bg: '#ef4444', text: '#fff',    border: '#dc2626' },
+        '黑':   { bg: '#1f2937', text: '#fff',    border: '#111827' },
+        '白':   { bg: '#f9fafb', text: '#374151', border: '#d1d5db' },
+        '粉':   { bg: '#fbcfe8', text: '#9d174d', border: '#f9a8d4' },
+        '米白': { bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
+      };
+      return colorMap[colorName] || { bg: '#e5e7eb', text: '#374151', border: '#d1d5db' };
     };
     const colorBadge = b.color ? (() => {
-      const c = colorMap[b.color] || { bg: '#e5e7eb', text: '#374151', border: '#d1d5db' };
+      const c = getColorStyle(b.color);
       return `<span style="display:inline-block;background:${c.bg};color:${c.text};border:1px solid ${c.border};border-radius:12px;font-size:12px;font-weight:600;padding:2px 10px;margin-left:6px;vertical-align:middle">${b.color}</span>`;
     })() : '';
 
@@ -2243,7 +2444,8 @@ window.saveRecalcProfit = function(){
 };
 
 async function delBatch(batchId){
-  if(!confirm('确定删除批次？')) return;
+  const confirmed = await showModal({title:'删除确认', msg:'确定删除批次？', danger:true});
+  if(!confirmed) return;
   try {
     await apiFetch(`/api/companies/${currentCompany}/batches/${batchId}`, { method: 'DELETE' });
     data.batches = data.batches.filter(b => b.id !== batchId);
@@ -2434,7 +2636,7 @@ async function empAdd(){
 
 function empShow(){
   const emp = data.emps.find(e => e.id === currentUser);
-  if(!emp){ alert('未找到员工信息'); return; }
+  if(!emp){ showToast('未找到员工信息', 'error'); return; }
 
   if(!data.records[currentUser]){
     document.getElementById('empResult').innerHTML = '<p style="text-align:center;padding:20px;color:#999">暂无登记记录</p>';
@@ -2854,16 +3056,18 @@ async function editRecord(recId){
     document.getElementById('adminPage').style.display = 'none';
     document.getElementById('adminBar').style.display = 'none';
     // 隐藏退出按钮
-    document.querySelector('.logout-btn').style.display = 'none';
+    const logoutBtn = document.querySelector('.logout-btn');
+    if (logoutBtn) logoutBtn.style.display = 'none';
   } else {
     // 恢复登录状态后显示退出按钮
-    document.querySelector('.logout-btn').style.display = 'block';
+    const logoutBtn = document.querySelector('.logout-btn');
+    if (logoutBtn) logoutBtn.style.display = 'block';
   }
 })();
 </script>
 
 <!-- 退出按钮 -->
-<button class="logout-btn" onclick="logout()">退出</button>
+<button class="logout-btn" onclick="logout()" style="display:none">退出</button>
 
 <!-- Service Worker 注册 -->
 <script>
@@ -2924,8 +3128,101 @@ showAdmin = async function(tab) {
   await originalShowAdmin(tab);
   if (tab === 'settings') {
     loadServerChanSettings();
+    loadColors();
   }
 };
+
+// 默认颜色
+const defaultColors = [
+  { name: '红色', value: '#ff6b6b' },
+  { name: '青色', value: '#4ecdc4' },
+  { name: '蓝色', value: '#45b7d1' },
+  { name: '黄色', value: '#ffe66d' },
+  { name: '紫色', value: '#a55eea' },
+  { name: '粉色', value: '#fd79a8' },
+  { name: '橙色', value: '#fdcb6e' },
+  { name: '黑色', value: '#636e72' },
+  { name: '白色', value: '#b2bec3' },
+  { name: '棕色', value: '#8B4513' }
+];
+
+let currentColors = [];
+
+// 加载颜色列表
+async function loadColors() {
+  try {
+    const result = await apiFetch(`/api/companies/${currentCompany}/settings`);
+    currentColors = result.colors || [...defaultColors];
+    renderColorList();
+  } catch(e) {
+    currentColors = [...defaultColors];
+    renderColorList();
+  }
+}
+
+// 渲染颜色列表
+function renderColorList() {
+  const container = document.getElementById('colorList');
+  if (!container) return;
+  
+  container.innerHTML = currentColors.map((c, idx) => `
+    <span class="color-tag" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:#f5f5f5;border-radius:20px;font-size:13px;border:1px solid #e0e0e0">
+      <span style="width:14px;height:14px;border-radius:50%;background:${c.value};display:inline-block"></span>
+      ${c.name}
+      <span onclick="removeColor(${idx})" style="cursor:pointer;color:#999;margin-left:4px;font-size:16px;line-height:1">×</span>
+    </span>
+  `).join('');
+}
+
+// 添加颜色
+function addColor() {
+  const nameInput = document.getElementById('newColorName');
+  const valueSelect = document.getElementById('newColorValue');
+  const name = nameInput.value.trim();
+  const value = valueSelect.value;
+  
+  if (!name) {
+    showToast('请输入颜色名称', 'error');
+    return;
+  }
+  
+  // 检查是否已存在
+  if (currentColors.some(c => c.name === name)) {
+    showToast('该颜色已存在', 'error');
+    return;
+  }
+  
+  currentColors.push({ name, value });
+  renderColorList();
+  nameInput.value = '';
+  showToast('颜色已添加', 'success');
+}
+
+// 删除颜色
+function removeColor(idx) {
+  currentColors.splice(idx, 1);
+  renderColorList();
+}
+
+// 保存颜色
+async function saveColors() {
+  try {
+    await apiFetch(`/api/companies/${currentCompany}/settings/colors`, {
+      method: 'PUT',
+      body: { colors: currentColors }
+    });
+    showToast('✅ 颜色设置已保存', 'success');
+  } catch(e) {
+    showToast('保存失败：' + e.message, 'error');
+  }
+}
+
+// 恢复默认颜色
+function resetColors() {
+  currentColors = [...defaultColors];
+  renderColorList();
+  showToast('已恢复默认颜色', 'success');
+}
 </script>
 
 </body>

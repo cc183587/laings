@@ -11,12 +11,24 @@ router.get('/', (req, res) => {
   
   try {
     const settings = db.prepare(`
-      SELECT serverchan_key as serverchanKey
+      SELECT serverchan_key as serverchanKey, colors
       FROM settings 
       WHERE company_code = ?
     `).get(company);
     
-    res.json(settings || { serverchanKey: '' });
+    const result = { serverchanKey: '' };
+    if (settings) {
+      result.serverchanKey = settings.serverchanKey || '';
+      if (settings.colors) {
+        try {
+          result.colors = JSON.parse(settings.colors);
+        } catch (e) {
+          result.colors = null;
+        }
+      }
+    }
+    
+    res.json(result);
   } catch (error) {
     console.error('获取设置失败:', error);
     res.status(500).json({ error: '获取设置失败' });
@@ -78,6 +90,32 @@ router.post('/serverchan/test', async (req, res) => {
   } catch (error) {
     console.error('测试推送失败:', error);
     res.status(500).json({ error: '测试推送失败' });
+  }
+});
+
+// 保存颜色设置
+router.put('/colors', (req, res) => {
+  const { company } = req.params;
+  const { colors } = req.body;
+  const db = getDb();
+  
+  try {
+    const now = new Date().toISOString();
+    const colorsJson = JSON.stringify(colors || []);
+    
+    // 使用 INSERT OR REPLACE
+    db.prepare(`
+      INSERT INTO settings (company_code, colors, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(company_code) DO UPDATE SET
+        colors = excluded.colors,
+        updated_at = excluded.updated_at
+    `).run(company, colorsJson, now);
+    
+    res.json({ success: true, message: '颜色设置已保存' });
+  } catch (error) {
+    console.error('保存颜色设置失败:', error);
+    res.status(500).json({ error: '保存颜色设置失败' });
   }
 });
 
