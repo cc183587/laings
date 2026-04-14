@@ -712,16 +712,10 @@
   <!-- 库存管理 -->
   <div id="adminStock" style="display:none">
     <div class="box" style="display:flex;gap:10px;margin-bottom:15px">
-      <button class="btn" onclick="stockShowAddModal()" style="flex:1">+ 新增物品</button>
+      <button class="btn" onclick="stockShowAddModal()" style="flex:1">+ 新增配件</button>
       <button class="btn" onclick="stockShowAllLogs()" style="flex:1;background:#8e44ad">📋 全部日志</button>
     </div>
-    <div id="stockCategoryFilter" style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn-sm active" onclick="stockFilterCategory('all')" data-cat="all">全部</button>
-      <button class="btn-sm" onclick="stockFilterCategory('配件')" data-cat="配件">配件</button>
-      <button class="btn-sm" onclick="stockFilterCategory('耗材')" data-cat="耗材">耗材</button>
-      <button class="btn-sm" onclick="stockFilterCategory('包材')" data-cat="包材">包材</button>
-      <button class="btn-sm" onclick="stockFilterCategory('其他')" data-cat="其他">其他</button>
-    </div>
+
     <div id="stockList"></div>
   </div>
 
@@ -858,17 +852,31 @@
 // ==================== 自定义模态框（替代 alert/confirm/prompt） ====================
 let _modalResolve = null;
 
-function showModal({title='', msg='', hasInput=false, inputDefault='', confirmText='确定', danger=false, cancelText='取消', hideCancel=false}){
+function showModal({title='', msg='', content='', hasInput=false, inputDefault='', confirmText='确定', danger=false, cancelText='取消', hideCancel=false, onConfirm, onCancel}){
   document.getElementById('customModalTitle').textContent = title;
-  document.getElementById('customModalMsg').innerHTML = msg;
+  const msgEl = document.getElementById('customModalMsg');
   const inp = document.getElementById('customModalInput');
-  if(hasInput){
-    inp.style.display = 'block';
-    inp.value = inputDefault;
-    setTimeout(()=>inp.focus(),100);
-  } else {
+  
+  // 如果提供了 content，使用 content 作为 HTML 内容
+  if (content) {
+    msgEl.innerHTML = content;
     inp.style.display = 'none';
+    // 存储回调函数
+    window._modalOnConfirm = onConfirm;
+    window._modalOnCancel = onCancel;
+  } else {
+    msgEl.innerHTML = msg;
+    if(hasInput){
+      inp.style.display = 'block';
+      inp.value = inputDefault;
+      setTimeout(()=>inp.focus(),100);
+    } else {
+      inp.style.display = 'none';
+    }
+    window._modalOnConfirm = null;
+    window._modalOnCancel = null;
   }
+  
   document.getElementById('customModalConfirm').textContent = confirmText;
   const confirmBtn = document.getElementById('customModalConfirm');
   confirmBtn.className = 'modal-btn modal-confirm' + (danger ? ' danger' : '');
@@ -879,11 +887,24 @@ function showModal({title='', msg='', hasInput=false, inputDefault='', confirmTe
 }
 function modalConfirm(){
   const inp = document.getElementById('customModalInput');
+  // 如果有自定义回调，先执行回调
+  if (window._modalOnConfirm) {
+    window._modalOnConfirm();
+    return;
+  }
   const val = inp.style.display !== 'none' ? inp.value : true;
   document.getElementById('customModal').classList.remove('show');
   if(_modalResolve){ _modalResolve(val); _modalResolve=null; }
 }
 function modalCancel(){
+  // 如果有自定义取消回调，先执行回调
+  if (window._modalOnCancel) {
+    window._modalOnCancel();
+    document.getElementById('customModal').classList.remove('show');
+    window._modalOnConfirm = null;
+    window._modalOnCancel = null;
+    return;
+  }
   document.getElementById('customModal').classList.remove('show');
   if(_modalResolve){ _modalResolve(null); _modalResolve=null; }
 }
@@ -1215,7 +1236,7 @@ function logout(){
 // ==================== 页面导航 ====================
 function hideAll(){
   ['loginPage','empPage','adminPage',
-   'adminEmp','adminRegister','adminRecord','adminTotal','adminProduct','adminBatch','adminSettings']
+   'adminEmp','adminRegister','adminRecord','adminTotal','adminProduct','adminBatch','adminSettings','adminStock']
     .forEach(id => {
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
@@ -3405,7 +3426,7 @@ function resetColors() {
 }
 
 // ==================== 库存管理 ====================
-let stockCurrentCategory = 'all';
+let stockCurrentCategory = null;
 let stockItemsCache = [];
 
 async function stockLoadItems() {
@@ -3420,9 +3441,9 @@ async function stockLoadItems() {
 
 function stockRenderItems() {
   const container = document.getElementById('stockList');
-  const items = stockCurrentCategory === 'all' 
-    ? stockItemsCache 
-    : stockItemsCache.filter(i => i.category === stockCurrentCategory);
+  const items = stockCurrentCategory 
+    ? stockItemsCache.filter(i => i.category === stockCurrentCategory)
+    : stockItemsCache;
   
   if (items.length === 0) {
     container.innerHTML = '<div style="text-align:center;padding:40px;color:#999">暂无物品</div>';
@@ -3433,12 +3454,11 @@ function stockRenderItems() {
     <div class="stock-card">
       <div class="stock-card-header">
         <span class="stock-card-name">${item.name}</span>
-        <span class="stock-card-category">${item.category}</span>
       </div>
       <div class="stock-card-body">
         <div class="stock-card-qty">
           <span class="stock-card-num">${item.quantity}</span>
-          <span class="stock-card-unit">${item.unit}</span>
+          <span class="stock-card-unit">pcs</span>
         </div>
         ${item.remark ? `<div class="stock-card-remark">${item.remark}</div>` : ''}
       </div>
@@ -3460,25 +3480,21 @@ function stockFilterCategory(cat) {
   stockRenderItems();
 }
 
-// 新增物品弹窗
+// 重置分类筛选
+function stockResetFilter() {
+  stockCurrentCategory = null;
+  document.querySelectorAll('#stockCategoryFilter button').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  stockRenderItems();
+}
+
+// 新增配件弹窗
 function stockShowAddModal() {
   const html = `
     <div style="margin-bottom:12px">
-      <label>物品名称</label>
+      <label>配件名称</label>
       <input type="text" id="stockAddName" placeholder="如：螺丝刀">
-    </div>
-    <div style="margin-bottom:12px">
-      <label>分类</label>
-      <select id="stockAddCategory">
-        <option value="配件">配件</option>
-        <option value="耗材">耗材</option>
-        <option value="包材">包材</option>
-        <option value="其他">其他</option>
-      </select>
-    </div>
-    <div style="margin-bottom:12px">
-      <label>单位</label>
-      <input type="text" id="stockAddUnit" placeholder="如：个、箱、米">
     </div>
     <div style="margin-bottom:12px">
       <label>备注（可选）</label>
@@ -3486,25 +3502,26 @@ function stockShowAddModal() {
     </div>
   `;
   showModal({
-    title: '新增物品',
+    title: '新增配件',
     content: html,
     onConfirm: async () => {
       const name = document.getElementById('stockAddName').value.trim();
-      const category = document.getElementById('stockAddCategory').value;
-      const unit = document.getElementById('stockAddUnit').value.trim();
       const remark = document.getElementById('stockAddRemark').value.trim();
       
-      if (!name || !unit) {
-        showToast('名称和单位不能为空', 'error');
+      if (!name) {
+        showToast('名称不能为空', 'error');
         return;
       }
       
       try {
         await apiFetch(`/api/companies/${currentCompany}/stock/items`, {
           method: 'POST',
-          body: JSON.stringify({ name, category, unit, remark })
+          body: JSON.stringify({ name, category: '其他', unit: 'pcs', remark })
         });
         showToast('添加成功', 'success');
+        document.getElementById('customModal').classList.remove('show');
+        window._modalOnConfirm = null;
+        window._modalOnCancel = null;
         stockLoadItems();
       } catch(e) {
         showToast('添加失败: ' + e.message, 'error');
@@ -3524,19 +3541,6 @@ function stockShowEditModal(itemId) {
       <input type="text" id="stockEditName" value="${item.name}">
     </div>
     <div style="margin-bottom:12px">
-      <label>分类</label>
-      <select id="stockEditCategory">
-        <option value="配件" ${item.category === '配件' ? 'selected' : ''}>配件</option>
-        <option value="耗材" ${item.category === '耗材' ? 'selected' : ''}>耗材</option>
-        <option value="包材" ${item.category === '包材' ? 'selected' : ''}>包材</option>
-        <option value="其他" ${item.category === '其他' ? 'selected' : ''}>其他</option>
-      </select>
-    </div>
-    <div style="margin-bottom:12px">
-      <label>单位</label>
-      <input type="text" id="stockEditUnit" value="${item.unit}">
-    </div>
-    <div style="margin-bottom:12px">
       <label>备注</label>
       <input type="text" id="stockEditRemark" value="${item.remark || ''}">
     </div>
@@ -3549,16 +3553,17 @@ function stockShowEditModal(itemId) {
     content: html,
     onConfirm: async () => {
       const name = document.getElementById('stockEditName').value.trim();
-      const category = document.getElementById('stockEditCategory').value;
-      const unit = document.getElementById('stockEditUnit').value.trim();
       const remark = document.getElementById('stockEditRemark').value.trim();
       
       try {
         await apiFetch(`/api/companies/${currentCompany}/stock/items/${itemId}`, {
           method: 'PUT',
-          body: JSON.stringify({ name, category, unit, remark })
+          body: JSON.stringify({ name, remark })
         });
         showToast('更新成功', 'success');
+        document.getElementById('customModal').classList.remove('show');
+        window._modalOnConfirm = null;
+        window._modalOnCancel = null;
         stockLoadItems();
       } catch(e) {
         showToast('更新失败: ' + e.message, 'error');
@@ -3619,6 +3624,9 @@ function stockShowInModal(itemId) {
           body: JSON.stringify({ quantity: qty, remark })
         });
         showToast('入库成功', 'success');
+        document.getElementById('customModal').classList.remove('show');
+        window._modalOnConfirm = null;
+        window._modalOnCancel = null;
         stockLoadItems();
       } catch(e) {
         showToast('入库失败: ' + e.message, 'error');
@@ -3669,6 +3677,9 @@ function stockShowOutModal(itemId) {
           body: JSON.stringify({ quantity: qty, remark })
         });
         showToast('出库成功', 'success');
+        document.getElementById('customModal').classList.remove('show');
+        window._modalOnConfirm = null;
+        window._modalOnCancel = null;
         stockLoadItems();
       } catch(e) {
         showToast('出库失败: ' + e.message, 'error');

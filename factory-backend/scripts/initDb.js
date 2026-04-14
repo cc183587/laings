@@ -114,7 +114,7 @@ export function initDb() {
     -- 库存物品表
     CREATE TABLE IF NOT EXISTS stock_items (
       id           INTEGER PRIMARY KEY AUTOINCREMENT,
-      company      TEXT NOT NULL,
+      company_code TEXT NOT NULL,
       name         TEXT NOT NULL,
       category     TEXT NOT NULL DEFAULT '其他',
       unit         TEXT NOT NULL,
@@ -123,7 +123,7 @@ export function initDb() {
       created_at   TEXT DEFAULT (datetime('now', 'localtime'))
     );
 
-    CREATE INDEX IF NOT EXISTS idx_stock_items_company ON stock_items(company);
+    CREATE INDEX IF NOT EXISTS idx_stock_items_company ON stock_items(company_code);
     CREATE INDEX IF NOT EXISTS idx_stock_items_category ON stock_items(category);
 
     -- 库存出入库日志表
@@ -131,14 +131,14 @@ export function initDb() {
       id           INTEGER PRIMARY KEY AUTOINCREMENT,
       item_id      INTEGER NOT NULL,
       type         TEXT NOT NULL,  -- 'in' 入库, 'out' 出库
-      qty          INTEGER NOT NULL,
+      quantity     INTEGER NOT NULL,
       unit         TEXT NOT NULL,
       remark       TEXT,
-      log_time     TEXT DEFAULT (datetime('now', 'localtime'))
+      created_at   TEXT DEFAULT (datetime('now', 'localtime'))
     );
 
     CREATE INDEX IF NOT EXISTS idx_stock_logs_item ON stock_logs(item_id);
-    CREATE INDEX IF NOT EXISTS idx_stock_logs_time ON stock_logs(log_time);
+    CREATE INDEX IF NOT EXISTS idx_stock_logs_time ON stock_logs(created_at);
   `);
 
   // 数据库迁移：为 settings 表添加 colors 列
