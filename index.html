@@ -714,6 +714,7 @@
     <div class="box" style="display:flex;gap:10px;margin-bottom:15px">
       <button class="btn" onclick="stockShowAddModal()" style="flex:1">+ 新增配件</button>
       <button class="btn" onclick="stockShowAllLogs()" style="flex:1;background:#8e44ad">📋 全部日志</button>
+      <button class="btn" id="stockInventoryBtn" onclick="stockToggleInventory()" style="flex:1;background:#27ae60">📦 当前库存</button>
     </div>
 
     <div id="stockList"></div>
@@ -3428,6 +3429,7 @@ function resetColors() {
 // ==================== 库存管理 ====================
 let stockCurrentCategory = null;
 let stockItemsCache = [];
+let stockShowZeroQty = false; // 是否显示数量为0的配件
 
 async function stockLoadItems() {
   try {
@@ -3441,9 +3443,19 @@ async function stockLoadItems() {
 
 function stockRenderItems() {
   const container = document.getElementById('stockList');
-  const items = stockCurrentCategory 
-    ? stockItemsCache.filter(i => i.category === stockCurrentCategory)
-    : stockItemsCache;
+  let items = stockItemsCache;
+  
+  // 当前库存：只显示数量>0的；历史库存：只显示数量=0的
+  if (!stockShowZeroQty) {
+    items = items.filter(i => i.quantity > 0);
+  } else {
+    items = items.filter(i => i.quantity === 0);
+  }
+  
+  // 应用分类筛选
+  if (stockCurrentCategory) {
+    items = items.filter(i => i.category === stockCurrentCategory);
+  }
   
   if (items.length === 0) {
     container.innerHTML = '<div style="text-align:center;padding:40px;color:#999">暂无物品</div>';
@@ -3465,11 +3477,25 @@ function stockRenderItems() {
       <div class="stock-card-actions">
         <button class="btn-sm btn-green" onclick="stockShowInModal(${item.id})">入库</button>
         <button class="btn-sm btn-orange" onclick="stockShowOutModal(${item.id})">出库</button>
+        <button class="btn-sm btn-red" onclick="stockDeleteItem(${item.id})">删除</button>
         <button class="btn-sm" onclick="stockShowLogs(${item.id})">日志</button>
-        <button class="btn-sm" onclick="stockShowEditModal(${item.id})" style="background:#8e44ad">编辑</button>
       </div>
     </div>
   `).join('');
+}
+
+// 切换库存显示模式
+function stockToggleInventory() {
+  stockShowZeroQty = !stockShowZeroQty;
+  const btn = document.getElementById('stockInventoryBtn');
+  if (stockShowZeroQty) {
+    btn.textContent = '📦 历史库存';
+    btn.style.background = '#7f8c8d';
+  } else {
+    btn.textContent = '📦 当前库存';
+    btn.style.background = '#27ae60';
+  }
+  stockRenderItems();
 }
 
 function stockFilterCategory(cat) {
@@ -3494,15 +3520,15 @@ function stockShowAddModal() {
   const html = `
     <div style="margin-bottom:12px">
       <label>配件名称</label>
-      <input type="text" id="stockAddName" placeholder="如：螺丝刀">
+      <input type="text" id="stockAddName">
     </div>
     <div style="margin-bottom:12px">
       <label>初始数量</label>
-      <input type="number" id="stockAddQty" placeholder="请输入数量" min="0" value="0">
+      <input type="number" id="stockAddQty" min="0">
     </div>
     <div style="margin-bottom:12px">
-      <label>备注（可选）</label>
-      <input type="text" id="stockAddRemark" placeholder="备注信息">
+      <label>备注</label>
+      <input type="text" id="stockAddRemark">
     </div>
   `;
   showModal({
@@ -3554,9 +3580,6 @@ function stockShowEditModal(itemId) {
       <label>备注</label>
       <input type="text" id="stockEditRemark" value="${item.remark || ''}">
     </div>
-    <div style="margin-top:15px;padding-top:15px;border-top:1px solid #eee">
-      <button class="btn-sm btn-red" onclick="stockDeleteItem(${itemId})" style="width:100%">删除此物品</button>
-    </div>
   `;
   showModal({
     title: '编辑物品',
@@ -3590,7 +3613,6 @@ async function stockDeleteItem(itemId) {
       method: 'DELETE'
     });
     showToast('删除成功', 'success');
-    closeModal();
     stockLoadItems();
   } catch(e) {
     showToast('删除失败: ' + e.message, 'error');
@@ -3605,15 +3627,15 @@ function stockShowInModal(itemId) {
   const html = `
     <div style="margin-bottom:12px">
       <label>物品</label>
-      <div style="padding:10px;background:#f5f5f5;border-radius:6px">${item.name}（当前库存: ${item.quantity}${item.unit}）</div>
+      <div style="padding:10px;background:#f5f5f5;border-radius:6px">${item.name}（当前库存: <span style="font-weight:bold;font-size:16px;color:#ff4d4f">${item.quantity}</span><span style="color:#1890ff">  ${item.unit || 'pcs'}</span>）</div>
     </div>
     <div style="margin-bottom:12px">
       <label>入库数量</label>
       <input type="number" id="stockInQty" placeholder="请输入数量" min="1">
     </div>
     <div style="margin-bottom:12px">
-      <label>备注（如：从供应商XXX采购）</label>
-      <input type="text" id="stockInRemark" placeholder="可选">
+      <label>备注</label>
+      <input type="text" id="stockInRemark">
     </div>
   `;
   showModal({
@@ -3653,15 +3675,15 @@ function stockShowOutModal(itemId) {
   const html = `
     <div style="margin-bottom:12px">
       <label>物品</label>
-      <div style="padding:10px;background:#f5f5f5;border-radius:6px">${item.name}（当前库存: ${item.quantity}${item.unit}）</div>
+      <div style="padding:10px;background:#f5f5f5;border-radius:6px">${item.name}（当前库存: <span style="font-weight:bold;font-size:16px;color:#ff4d4f">${item.quantity}</span><span style="color:#1890ff">  ${item.unit || 'pcs'}</span>）</div>
     </div>
     <div style="margin-bottom:12px">
       <label>出库数量</label>
       <input type="number" id="stockOutQty" placeholder="请输入数量" min="1" max="${item.quantity}">
     </div>
     <div style="margin-bottom:12px">
-      <label>备注（如：领料给李师傅）</label>
-      <input type="text" id="stockOutRemark" placeholder="可选">
+      <label>备注</label>
+      <input type="text" id="stockOutRemark">
     </div>
   `;
   showModal({
@@ -3726,6 +3748,92 @@ async function stockShowAllLogs() {
   }
 }
 
+// 显示当前库存弹窗
+async function stockShowInventory() {
+  document.getElementById('stockLogsModalTitle').textContent = '当前库存';
+  document.getElementById('stockLogsContent').innerHTML = '<div style="text-align:center;padding:20px;color:#aaa">加载中...</div>';
+  document.getElementById('stockLogsModal').style.display = 'flex';
+  
+  try {
+    const items = await apiFetch(`/api/companies/${currentCompany}/stock/items`);
+    const container = document.getElementById('stockLogsContent');
+    
+    if (!items || items.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa">暂无物品</div>';
+      return;
+    }
+    
+    container.innerHTML = `
+      <div style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden">
+        <div style="padding:10px;background:#f5f5f5;border-bottom:1px solid #e8e8e8;font-weight:bold;font-size:13px;display:flex;justify-content:space-between">
+          <span>配件名称</span>
+          <span>库存数量</span>
+        </div>
+        ${items.map(item => `
+          <div style="padding:10px 12px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:14px">${item.name}</span>
+            <span style="font-weight:bold;font-size:16px;color:${item.quantity > 0 ? '#333' : '#999'}">
+              ${item.quantity}<span style="color:#1890ff;font-weight:normal;font-size:13px">  ${item.unit || 'pcs'}</span>
+            </span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch(e) {
+    document.getElementById('stockLogsContent').innerHTML = `<div style="color:red;padding:10px">${e.message}</div>`;
+  }
+}
+
+function stockRenderLogsWithInventory(logs, items) {
+  const container = document.getElementById('stockLogsContent');
+  
+  // 构建库存列表HTML（包括数量为0的）
+  const inventoryHtml = items.map(item => `
+    <div style="padding:8px 10px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px">${item.name}</span>
+      <span style="font-weight:bold;color:${item.quantity > 0 ? '#333' : '#999'};font-size:13px">
+        ${item.quantity} ${item.unit || 'pcs'}
+      </span>
+    </div>
+  `).join('');
+  
+  // 构建日志列表HTML
+  const logsHtml = (!logs || logs.length === 0) 
+    ? '<div style="text-align:center;padding:20px;color:#aaa">暂无记录</div>'
+    : logs.map(l => {
+        const isIn = l.type === 'in';
+        const u = l.unit || 'pcs';
+        const sign = isIn ? '+' : '-';
+        const color = isIn ? '#52c41a' : '#ff4d4f';
+        const qty = l.quantity || l.qty || 0;
+        return `
+          <div style="padding:8px 10px;border-bottom:1px solid #f0f0f0">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="color:${color};font-weight:bold;font-size:16px">${sign}${qty}<span style="color:#1890ff;font-weight:normal;font-size:13px">  ${u}</span></span>
+              <span style="color:#999;font-size:12px">${(l.created_at || '').slice(0, 16)}</span>
+            </div>
+            <div style="font-size:12px;color:#666;margin-top:2px">${l.item_name || ''}</div>
+            ${l.remark ? `<div style="color:#999;font-size:11px">${l.remark}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+  
+  container.innerHTML = `
+    <div style="display:flex;height:100%;gap:15px">
+      <!-- 左边：日志 -->
+      <div style="flex:1.5;overflow-y:auto;border:1px solid #e8e8e8;border-radius:6px">
+        <div style="padding:10px;background:#f5f5f5;border-bottom:1px solid #e8e8e8;font-weight:bold;font-size:13px">📋 出入库记录</div>
+        <div>${logsHtml}</div>
+      </div>
+      <!-- 右边：库存 -->
+      <div style="flex:1;overflow-y:auto;border:1px solid #e8e8e8;border-radius:6px;min-width:150px">
+        <div style="padding:10px;background:#f5f5f5;border-bottom:1px solid #e8e8e8;font-weight:bold;font-size:13px">📦 当前库存</div>
+        <div>${inventoryHtml || '<div style="padding:20px;color:#aaa;text-align:center">暂无物品</div>'}</div>
+      </div>
+    </div>
+  `;
+}
+
 function stockRenderLogs(logs, unit, showItemName = false) {
   const container = document.getElementById('stockLogsContent');
   if (!logs || logs.length === 0) {
@@ -3738,16 +3846,17 @@ function stockRenderLogs(logs, unit, showItemName = false) {
     const u = l.unit || unit;
     const sign = isIn ? '+' : '-';
     const color = isIn ? '#52c41a' : '#ff4d4f';
+    const qty = l.quantity || l.qty || 0;
     const itemLabel = showItemName && l.item_name ? `<span style="color:#666;font-size:12px">[${l.item_name}] </span>` : '';
     return `
       <div style="padding:10px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
         <div>
-          <span style="color:${color};font-weight:bold">${sign}${l.qty}${u}</span>
+          <span style="color:${color};font-weight:bold;font-size:16px">${sign}${qty}<span style="color:#1890ff;font-weight:normal;font-size:13px">  ${u}</span></span>
           <span style="color:#999;font-size:12px;margin-left:8px">${isIn ? '入库' : '出库'}</span>
           ${itemLabel}
           ${l.remark ? `<div style="color:#999;font-size:12px;margin-top:4px">${l.remark}</div>` : ''}
         </div>
-        <div style="color:#999;font-size:12px">${(l.log_time || '').slice(0, 16)}</div>
+        <div style="color:#999;font-size:12px">${(l.created_at || '').slice(0, 16)}</div>
       </div>
     `;
   }).join('');
