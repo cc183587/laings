@@ -112,6 +112,8 @@ export function initDb() {
     );
 
     -- 库存物品表
+    DROP TABLE IF EXISTS stock_items;
+    DROP TABLE IF EXISTS stock_logs;
     CREATE TABLE IF NOT EXISTS stock_items (
       id           INTEGER PRIMARY KEY AUTOINCREMENT,
       company_code TEXT NOT NULL,

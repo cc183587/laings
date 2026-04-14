@@ -13,7 +13,7 @@ router.get('/items', (req, res) => {
   try {
     const items = db.prepare(`
       SELECT * FROM stock_items 
-      WHERE company = ? 
+      WHERE company_code = ? 
       ORDER BY category, name
     `).all(company);
     
@@ -27,17 +27,27 @@ router.get('/items', (req, res) => {
 router.post('/items', (req, res) => {
   const { company } = req.params;
   const db = getDb();
-  const { name, category, unit, remark } = req.body;
+  const { name, category, unit, quantity, remark } = req.body;
   
   if (!name) {
     return res.status(400).json({ error: '物品名称不能为空' });
   }
   
+  const initQty = parseInt(quantity) || 0;
+  
   try {
     const result = db.prepare(`
-      INSERT INTO stock_items (company, name, category, unit, quantity, remark)
-      VALUES (?, ?, ?, ?, 0, ?)
-    `).run(company, name, category || '其他', unit || 'pcs', remark || '');
+      INSERT INTO stock_items (company_code, name, category, unit, quantity, remark)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(company, name, category || '其他', unit || 'pcs', initQty, remark || '');
+    
+    // 如果有初始数量，记录入库日志
+    if (initQty > 0) {
+      db.prepare(`
+        INSERT INTO stock_logs (item_id, type, quantity, unit, remark, created_at)
+        VALUES (?, 'in', ?, ?, ?, datetime('now', 'localtime'))
+      `).run(result.lastInsertRowid, initQty, unit || 'pcs', '初始入库');
+    }
     
     res.json({ 
       id: result.lastInsertRowid,
@@ -58,7 +68,7 @@ router.put('/items/:id', (req, res) => {
     db.prepare(`
       UPDATE stock_items 
       SET name = ?, category = ?, unit = ?, remark = ?
-      WHERE id = ? AND company = ?
+      WHERE id = ? AND company_code = ?
     `).run(name, category, unit, remark || '', id, company);
     
     res.json({ message: '物品更新成功' });
@@ -76,7 +86,7 @@ router.delete('/items/:id', (req, res) => {
     // 先删除相关日志
     db.prepare(`DELETE FROM stock_logs WHERE item_id = ?`).run(id);
     // 再删除物品
-    db.prepare(`DELETE FROM stock_items WHERE id = ? AND company = ?`).run(id, company);
+    db.prepare(`DELETE FROM stock_items WHERE id = ? AND company_code = ?`).run(id, company);
     
     res.json({ message: '物品删除成功' });
   } catch (err) {
@@ -89,14 +99,14 @@ router.post('/items/:id/in', (req, res) => {
   const { company, id } = req.params;
   const db = getDb();
   const { quantity, remark } = req.body;
-  
+
   if (!quantity || quantity <= 0) {
     return res.status(400).json({ error: '入库数量必须大于0' });
   }
-  
+
   try {
     // 获取当前库存
-    const item = db.prepare(`SELECT * FROM stock_items WHERE id = ? AND company = ?`).get(id, company);
+    const item = db.prepare(`SELECT * FROM stock_items WHERE id = ? AND company_code = ?`).get(id, company);
     if (!item) {
       return res.status(404).json({ error: '物品不存在' });
     }
@@ -125,14 +135,14 @@ router.post('/items/:id/out', (req, res) => {
   const { company, id } = req.params;
   const db = getDb();
   const { quantity, remark } = req.body;
-  
+
   if (!quantity || quantity <= 0) {
     return res.status(400).json({ error: '出库数量必须大于0' });
   }
-  
+
   try {
     // 获取当前库存
-    const item = db.prepare(`SELECT * FROM stock_items WHERE id = ? AND company = ?`).get(id, company);
+    const item = db.prepare(`SELECT * FROM stock_items WHERE id = ? AND company_code = ?`).get(id, company);
     if (!item) {
       return res.status(404).json({ error: '物品不存在' });
     }
@@ -185,13 +195,13 @@ router.get('/items/:id/logs', (req, res) => {
 router.get('/logs', (req, res) => {
   const { company } = req.params;
   const db = getDb();
-  
+
   try {
     const logs = db.prepare(`
       SELECT l.*, i.name as item_name, i.unit
       FROM stock_logs l
       JOIN stock_items i ON l.item_id = i.id
-      WHERE i.company = ?
+      WHERE i.company_code = ?
       ORDER BY l.created_at DESC 
       LIMIT 500
     `).all(company);

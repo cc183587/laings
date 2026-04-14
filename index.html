@@ -3497,6 +3497,10 @@ function stockShowAddModal() {
       <input type="text" id="stockAddName" placeholder="如：螺丝刀">
     </div>
     <div style="margin-bottom:12px">
+      <label>初始数量</label>
+      <input type="number" id="stockAddQty" placeholder="请输入数量" min="0" value="0">
+    </div>
+    <div style="margin-bottom:12px">
       <label>备注（可选）</label>
       <input type="text" id="stockAddRemark" placeholder="备注信息">
     </div>
@@ -3506,6 +3510,7 @@ function stockShowAddModal() {
     content: html,
     onConfirm: async () => {
       const name = document.getElementById('stockAddName').value.trim();
+      const qty = parseInt(document.getElementById('stockAddQty').value) || 0;
       const remark = document.getElementById('stockAddRemark').value.trim();
       
       if (!name) {
@@ -3513,10 +3518,15 @@ function stockShowAddModal() {
         return;
       }
       
+      if (qty < 0) {
+        showToast('数量不能为负数', 'error');
+        return;
+      }
+      
       try {
         await apiFetch(`/api/companies/${currentCompany}/stock/items`, {
           method: 'POST',
-          body: JSON.stringify({ name, category: '其他', unit: 'pcs', remark })
+          body: { name, category: '其他', unit: 'pcs', quantity: qty, remark }
         });
         showToast('添加成功', 'success');
         document.getElementById('customModal').classList.remove('show');
@@ -3558,7 +3568,7 @@ function stockShowEditModal(itemId) {
       try {
         await apiFetch(`/api/companies/${currentCompany}/stock/items/${itemId}`, {
           method: 'PUT',
-          body: JSON.stringify({ name, remark })
+          body: { name, remark }
         });
         showToast('更新成功', 'success');
         document.getElementById('customModal').classList.remove('show');
@@ -3621,7 +3631,7 @@ function stockShowInModal(itemId) {
       try {
         await apiFetch(`/api/companies/${currentCompany}/stock/items/${itemId}/in`, {
           method: 'POST',
-          body: JSON.stringify({ quantity: qty, remark })
+          body: { quantity: qty, remark }
         });
         showToast('入库成功', 'success');
         document.getElementById('customModal').classList.remove('show');
@@ -3674,7 +3684,7 @@ function stockShowOutModal(itemId) {
       try {
         await apiFetch(`/api/companies/${currentCompany}/stock/items/${itemId}/out`, {
           method: 'POST',
-          body: JSON.stringify({ quantity: qty, remark })
+          body: { quantity: qty, remark }
         });
         showToast('出库成功', 'success');
         document.getElementById('customModal').classList.remove('show');
