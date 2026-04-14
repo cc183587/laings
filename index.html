@@ -452,7 +452,16 @@
 <body>
 
 <!-- ========== 登录选择 ========== -->
-<div id="loginPage" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:20px">
+<!-- 加载中提示 -->
+<div id="loadingPage" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:20px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)">
+  <div style="text-align:center;color:white">
+    <div style="font-size:48px;margin-bottom:20px">🐱</div>
+    <div style="font-size:18px">加载中...</div>
+  </div>
+</div>
+
+<!-- ========== 登录选择 ========== -->
+<div id="loginPage" style="min-height:100vh;display:none;flex-direction:column;justify-content:center;align-items:center;padding:20px">
   <div style="text-align:center;width:100%;max-width:360px;margin-bottom:30px">
     <h1 style="color:#ff3b30;margin-bottom:10px">🎀 每日产量登记</h1>
   </div>
@@ -751,7 +760,10 @@ const SESSION_KEY = "factory_login_session";
 
 // 保存登录状态
 function saveLoginSession(user, company, role) {
+  // 保留已有的 session 数据（如 currentTab）
+  const existingSession = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
   const session = {
+    ...existingSession,
     user: user,
     company: company,
     role: role,
@@ -1074,6 +1086,13 @@ function adjustAdminPadding(){
 }
 window.addEventListener('resize', adjustAdminPadding);
 async function showAdmin(tab){
+  // 保存当前 tab 到 session
+  const session = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+  if (session.user) {
+    session.currentTab = tab;
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  }
+  
   hideAll();
   show('adminPage');
   show('admin'+tab.charAt(0).toUpperCase()+tab.slice(1));
@@ -3049,6 +3068,10 @@ async function editRecord(recId){
 (async function initPage() {
   console.log('正在恢复登录状态...');
   const restored = await checkAndRestoreSession();
+  // 隐藏加载页面
+  const loadingPage = document.getElementById('loadingPage');
+  if (loadingPage) loadingPage.style.display = 'none';
+  
   if (!restored) {
     console.log('未找到有效登录会话，显示登录页面');
     document.getElementById('loginPage').style.display = 'block';
@@ -3125,6 +3148,11 @@ async function testServerChanSettings() {
 // 在显示设置页面时加载配置
 const originalShowAdmin = showAdmin;
 showAdmin = async function(tab) {
+  // 保存当前 tab 到 sessionStorage，用于刷新后恢复
+  const session = JSON.parse(localStorage.getItem('factory_session') || '{}');
+  session.currentTab = tab;
+  localStorage.setItem('factory_session', JSON.stringify(session));
+  
   await originalShowAdmin(tab);
   if (tab === 'settings') {
     loadServerChanSettings();
