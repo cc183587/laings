@@ -52,3 +52,12 @@ logs/
 android-app/.gradle/
 android-app/app/build/
 android-app/local.properties
+
+# Cpolar 外网穿透相关（不上传）
+启动cpolar.vbs
+get_cpolar_url.ps1
+外网访问部署指南.md
+LAN-ACCESS-GUIDE.md
+termux-deploy-guide.md
+deploy-to-termux.sh
+redirect-page/
