@@ -140,6 +140,23 @@ export function initDb() {
 
     CREATE INDEX IF NOT EXISTS idx_stock_logs_item ON stock_logs(item_id);
     CREATE INDEX IF NOT EXISTS idx_stock_logs_time ON stock_logs(created_at);
+
+    -- 系统操作日志表
+    CREATE TABLE IF NOT EXISTS system_logs (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_code TEXT NOT NULL,
+      log_type     TEXT NOT NULL,   -- 'login' | 'record_add' | 'record_edit' | 'record_del'
+      emp_id       TEXT,
+      emp_name     TEXT,
+      detail       TEXT,            -- JSON字符串，存储详情
+      ip           TEXT,
+      created_at   TEXT DEFAULT (datetime('now', 'localtime'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_logs_company  ON system_logs(company_code);
+    CREATE INDEX IF NOT EXISTS idx_logs_type     ON system_logs(log_type);
+    CREATE INDEX IF NOT EXISTS idx_logs_emp      ON system_logs(emp_id);
+    CREATE INDEX IF NOT EXISTS idx_logs_time     ON system_logs(created_at);
   `);
 
   // 数据库迁移：为 settings 表添加 colors 列
@@ -168,6 +185,28 @@ export function initDb() {
     db.exec(`ALTER TABLE stock_logs ADD COLUMN created_at TEXT`);
   } catch(e) {
     // 列已存在，忽略
+  }
+
+  // 数据库迁移：新增 system_logs 表（如果不存在）
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS system_logs (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        company_code TEXT NOT NULL,
+        log_type     TEXT NOT NULL,
+        emp_id       TEXT,
+        emp_name     TEXT,
+        detail       TEXT,
+        ip           TEXT,
+        created_at   TEXT DEFAULT (datetime('now', 'localtime'))
+      )
+    `);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_logs_company ON system_logs(company_code)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_logs_type    ON system_logs(log_type)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_logs_emp     ON system_logs(emp_id)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_logs_time    ON system_logs(created_at)`);
+  } catch(e) {
+    // 表已存在，忽略
   }
 
   // 默认公司

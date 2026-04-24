@@ -18,11 +18,30 @@ router.post('/login', (req, res) => {
 
   const db = getDb();
   const inputLower = input.toLowerCase().trim();
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+
+  // 确保登录会话表存在
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS login_sessions (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_code TEXT NOT NULL,
+      emp_id       TEXT,
+      emp_name     TEXT,
+      role         TEXT NOT NULL,
+      ip           TEXT,
+      created_at   TEXT DEFAULT (datetime('now', 'localtime'))
+    )`);
+  } catch(e) { /* 表已存在 */ }
 
   // 1. 管理员密码匹配（不区分大小写）
   const companies = db.prepare(`SELECT * FROM companies`).all();
   for (const c of companies) {
     if (inputLower === c.admin_pwd.toLowerCase()) {
+      // 记录管理员登录
+      db.prepare(
+        `INSERT INTO login_sessions(company_code, emp_id, emp_name, role, ip) VALUES (?, ?, ?, ?, ?)`
+      ).run(c.code, 'admin', '管理员', 'admin', ip);
+
       return res.json({ role: 'admin', companyCode: c.code, companyName: c.name });
     }
   }
@@ -42,6 +61,11 @@ router.post('/login', (req, res) => {
   if (!emp) {
     return res.status(401).json({ error: '工号不存在' });
   }
+
+  // 记录员工登录
+  db.prepare(
+    `INSERT INTO login_sessions(company_code, emp_id, emp_name, role, ip) VALUES (?, ?, ?, ?, ?)`
+  ).run(company.code, emp.id, emp.name, 'employee', ip);
 
   return res.json({
     role: 'employee',

@@ -14,6 +14,7 @@ import recordRouter    from './routes/records.js';
 import summaryRouter   from './routes/summary.js';
 import settingsRouter  from './routes/settings.js';
 import stockRouter     from './routes/stock.js';
+import logsRouter      from './routes/logs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
@@ -53,6 +54,7 @@ app.use('/api/companies/:company/records',         recordRouter);
 app.use('/api/companies/:company/summary',         summaryRouter);
 app.use('/api/companies/:company/settings',        settingsRouter);
 app.use('/api/companies/:company/stock',           stockRouter);
+app.use('/api/companies/:company/logs',            logsRouter);
 
 // ── 健康检查 ──────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));

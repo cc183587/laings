@@ -650,6 +650,7 @@
     <button onclick="showAdmin('record')" data-tab="record">查询记录</button>
     <button onclick="showAdmin('total')" data-tab="total">薪资明细</button>
     <button onclick="showAdmin('settings')" data-tab="settings">设置</button>
+    <button onclick="showAdmin('logs')" data-tab="logs">日志</button>
   </div>
 </div>
 
@@ -802,6 +803,14 @@
       </div>
     </div>
     
+  </div>
+
+  <!-- 操作记录 -->
+  <div id="adminLogs" style="display:none">
+    <div class="box" style="padding:12px 15px">
+      <h3 style="margin:0;font-size:16px">📋 操作记录</h3>
+    </div>
+    <div id="adminLogsList" style="padding:0 0 20px"></div>
   </div>
 
   <!-- 产品管理 -->
@@ -1263,7 +1272,7 @@ function logout(){
 // ==================== 页面导航 ====================
 function hideAll(){
   ['loginPage','empPage','adminPage',
-   'adminEmp','adminRegister','adminRecord','adminTotal','adminProduct','adminBatch','adminSettings','adminStock']
+   'adminEmp','adminRegister','adminRecord','adminTotal','adminProduct','adminBatch','adminSettings','adminStock','adminLogs']
     .forEach(id => {
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
@@ -1324,6 +1333,7 @@ async function showAdmin(tab){
   if(tab === 'total') await adminLoadTotal();
   if(tab === 'stock') await stockLoadItems();
   if(tab === 'settings') loadServerChanSettings();
+  if(tab === 'logs') await adminLoadLogs();
 }
 
 async function adminAddEmp(){
@@ -3888,6 +3898,86 @@ function stockRenderLogs(logs, unit, showItemName = false) {
 
 function stockCloseLogsModal() {
   document.getElementById('stockLogsModal').style.display = 'none';
+}
+
+// ==================== 操作记录（文档式） ====================
+async function adminLoadLogs() {
+  const container = document.getElementById('adminLogsList');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa">加载中…</div>';
+
+  try {
+    const res = await apiFetch(`/api/companies/${currentCompany}/logs`);
+    renderLogDoc(res.list || []);
+  } catch(e) {
+    container.innerHTML = `<div style="color:red;padding:20px;text-align:center">加载失败: ${e.message}</div>`;
+  }
+}
+
+function renderLogDoc(list) {
+  const container = document.getElementById('adminLogsList');
+  if (!list.length) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#999;font-size:14px">暂无记录</div>';
+    return;
+  }
+
+  // 只保留员工记录（排除管理员登录）
+  const filtered = list.filter(it => !(it.type === 'login' && it.role === 'admin'));
+
+  if (!filtered.length) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#999;font-size:14px">暂无记录</div>';
+    return;
+  }
+
+  // 按日期分组
+  const groups = {};
+  filtered.forEach(item => {
+    const day = item.type === 'login'
+      ? (item.time || '').substring(0, 10)
+      : (item.date || '').substring(0, 10);
+    if (!groups[day]) groups[day] = [];
+    groups[day].push(item);
+  });
+
+  let html = '';
+
+  for (const [day, items] of Object.entries(groups)) {
+    // 日期标题
+    html += `<div style="padding:10px 15px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #e5e7eb;margin-bottom:2px">${day}</div>`;
+
+    for (const it of items) {
+      if (it.type === 'login') {
+        // 员工登录：张三  12:26:12  登录
+        const t = (it.time || '').substring(11, 19);
+        html += `<div style="padding:7px 15px;font-size:14px;color:#555;border-bottom:1px solid #f3f4f6">
+          <span style="font-weight:600;color:#222;margin-right:12px">${it.empName || it.empId}</span>
+          <span style="color:#999;margin-right:12px">${t}</span>
+          <span style="color:#6366f1">登录</span>
+        </div>`;
+      } else {
+        // 产量登记：赖楚鑫  12:28:20  放按键(50), 点喇叭(200)  ¥8.75
+        const t = (it.time || '').substring(0, 8);
+        const amount = +(it.amount || 0).toFixed(2);
+        const detail = it.processDetail || it.prodKey || '';
+        html += `<div style="padding:7px 15px;font-size:14px;color:#333;border-bottom:1px solid #f3f4f6;display:flex;align-items:baseline;gap:0">
+          <span style="font-weight:600;color:#222;margin-right:12px;white-space:nowrap">${it.empName || it.empId}</span>
+          <span style="color:#999;margin-right:12px;white-space:nowrap">${t}</span>
+          <span style="flex:1;color:#444">${detail}</span>
+          <span style="font-weight:700;color:#047857;white-space:nowrap;margin-left:12px">¥${amount.toFixed(2)}</span>
+        </div>`;
+      }
+    }
+
+    // 当日产量合计
+    const dayTotal = items.filter(i => i.type !== 'login').reduce((s, i) => s + (+(i.amount||0)), 0);
+    if (dayTotal > 0) {
+      html += `<div style="padding:6px 15px 12px;text-align:right;font-size:13px;color:#047857;font-weight:600">当日合计 ¥${dayTotal.toFixed(2)}</div>`;
+    } else {
+      html += `<div style="padding:6px 0 10px"></div>`;
+    }
+  }
+
+  container.innerHTML = html;
 }
 </script>
 

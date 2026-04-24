@@ -214,6 +214,7 @@ router.delete('/:id', (req, res) => {
     }
   }
   db.prepare(`DELETE FROM records WHERE id=? AND company_code=?`).run(id, company);
+
   res.json({ ok: true });
 });
 
@@ -237,6 +238,7 @@ router.put('/:id', (req, res) => {
   }
 
   db.prepare(`UPDATE records SET qty=? WHERE id=?`).run(qty, id);
+
   res.json({ ok: true });
 });
 
