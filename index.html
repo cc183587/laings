@@ -406,6 +406,16 @@
   .sv-kpi-decor{position:absolute;font-size:12px;opacity:.5;bottom:8px;right:10px}
 
   .sv-action-bar{display:flex;gap:10px;margin:4px 0 14px}
+
+  /* 月报表格样式 */
+  .monthly-report-table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  .monthly-report-table th{background:#f8f9fa;color:#555;font-weight:600;padding:10px 8px;text-align:left;border-bottom:2px solid #e9ecef;white-space:nowrap;font-size:12px}
+  .monthly-report-table td{padding:9px 8px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+  .monthly-report-table tr:last-child td{border-bottom:none}
+  .monthly-report-table tr:hover td{background:#fafbff}
+  .monthly-report-table tfoot td{background:#fdf7fb;font-weight:700;border-top:2px solid #ffc2d1;color:#c0392b}
+  .mr-profit{color:#4361ee;font-weight:600}
+  .mr-empty{text-align:center;color:#bbb;padding:30px;font-size:14px}
   .sv-btn{flex:1;padding:13px;font-size:15px;font-weight:600;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .15s}
   .sv-btn:active{opacity:.8}
   .sv-btn.export{background:linear-gradient(135deg,#007AFF,#0055cc);color:#fff;box-shadow:0 3px 10px rgba(0,122,255,.3)}
@@ -643,7 +653,7 @@
   <div class="nav" id="adminNav" style="margin:0;padding:8px 10px;border-radius:0;box-shadow:none">
     <button onclick="showAdmin('summary')" data-tab="summary">总览</button>
     <button onclick="showAdmin('batch')" data-tab="batch">出入库</button>
-    <button onclick="showAdmin('stock')" data-tab="stock">库存</button>
+    <button onclick="showAdmin('stock')" data-tab="stock" style="display:none">库存</button>
     <button onclick="showAdmin('product')" data-tab="product">产品管理</button>
     <button onclick="showAdmin('emp')" data-tab="emp">员工管理</button>
     <button onclick="showAdmin('register')" data-tab="register">产量登记</button>
@@ -679,11 +689,21 @@
           <span class="sv-tab-name">累计</span>
           <span class="sv-tab-sub">全部</span>
         </button>
+        <button class="sv-tab" onclick="switchSvTab('monthly')" id="svTabMonthly">
+          <span class="sv-tab-name">📋 月报</span>
+          <span class="sv-tab-sub" id="svMonthlyLabel">入库明细</span>
+        </button>
       </div>
       <!-- Tab 内容区 -->
       <div id="svPanelThis" class="sv-tab-panel"><div id="summaryContent"></div></div>
       <div id="svPanelLast" class="sv-tab-panel" style="display:none"><div id="summaryLastContent"></div></div>
       <div id="svPanelAll"  class="sv-tab-panel" style="display:none"><div id="summaryAllContent"></div></div>
+      <div id="svPanelMonthly" class="sv-tab-panel" style="display:none">
+        <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center">
+          <input type="month" id="monthlyReportMonth" onchange="renderMonthlyReport()" style="flex:1;font-size:14px;padding:8px;border:1px solid #ddd;border-radius:6px">
+        </div>
+        <div id="monthlyReportTable"></div>
+      </div>
     </div>
     <!-- 备份恢复 -->
     <div class="sv-section alltime" style="margin-top:0">
@@ -1603,11 +1623,15 @@ async function restoreData(input){
 
 function switchSvTab(tab){
   // 切换面板显示
-  ['this','last','all'].forEach(t => {
-    document.getElementById('svPanel'+t.charAt(0).toUpperCase()+t.slice(1)).style.display = t === tab ? '' : 'none';
-    const btn = document.getElementById('svTab'+t.charAt(0).toUpperCase()+t.slice(1));
+  ['this','last','all','monthly'].forEach(t => {
+    const id = t === 'monthly' ? 'svPanelMonthly' : 'svPanel'+t.charAt(0).toUpperCase()+t.slice(1);
+    document.getElementById(id).style.display = t === tab ? '' : 'none';
+    const btnId = t === 'monthly' ? 'svTabMonthly' : 'svTab'+t.charAt(0).toUpperCase()+t.slice(1);
+    const btn = document.getElementById(btnId);
     btn.classList.toggle('active', t === tab);
   });
+  // 切到月报时渲染表格
+  if(tab === 'monthly') renderMonthlyReport();
 }
 
 // 凌晨5点后才算新的一天（北京时间，仅用于总览统计）
@@ -1737,6 +1761,156 @@ async function adminLoadSummary(){
     '出库', s.all.outQty, '件',
     s.all.profit.toFixed(2), s.all.wage.toFixed(2)
   );
+
+  /* ====== 月报：入库批次明细 ====== */
+  // 初始化月报月份选择器为当前月（复用上面已声明的 now）
+  document.getElementById('monthlyReportMonth').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+}
+
+// 渲染月报表格（按选中月份筛选出库/结束批次）
+function renderMonthlyReport(){
+  const monthVal = document.getElementById('monthlyReportMonth').value;
+  if(!monthVal) return;
+  const [y, m] = monthVal.split('-').map(Number);
+  const ym = `${y}-${String(m).padStart(2,'0')}`; // 形如 "2026-04"
+
+  // 辅助函数：从日期字符串中提取 YYYY-MM 部分
+  function extractYM(dateStr) {
+    if (!dateStr) return '';
+    const s = String(dateStr).trim();
+    if (s.length >= 7 && s[4] === '-') return s.slice(0, 7);   // YYYY-MM-DD HH:MM:SS 或 YYYY-MM
+    if (s.indexOf('/') > 0) {                                    // 2026/4/10 格式
+      const parts = s.split(/[/\s]/);
+      return `${parts[0]}-${String(parts[1]).padStart(2,'0')}`;
+    }
+    return '';
+  }
+
+  // 筛选规则：
+  //   1. 有任何一次出库日期在所选月份
+  //   2. 结束时间在所选月份
+  const matchingBatches = (data.batches || []).filter(b => {
+    const hasDeliveryThisMonth = (b.deliveries || []).some(d => {
+      const dym = extractYM(d.date);
+      return dym === ym;
+    });
+    const closedThisMonth = b.status === 'closed' && extractYM(b.closedTime) === ym;
+    return hasDeliveryThisMonth || closedThisMonth;
+  });
+
+  // 调试用：控制台输出
+  if (matchingBatches.length === 0 && (data.batches || []).length > 0) {
+    const sample = (data.batches || []).slice(0, 3).map(b => ({
+      batchCode: b.batchCode,
+      status: b.status,
+      deliveriesCount: (b.deliveries || []).length,
+      sampleDates: (b.deliveries || []).slice(0, 2).map(d => d.date),
+      closedTime: b.closedTime,
+    }));
+    console.log('[月报] 未匹配到数据，月份=' + ym, '总批次数=' + (data.batches||[]).length, '样例:', sample);
+  }
+
+  const container = document.getElementById('monthlyReportTable');
+  if(matchingBatches.length === 0){
+    container.innerHTML = '<div class="mr-empty">📭 本月暂无出库/结束批次</div>';
+    return;
+  }
+
+  // 按批次号排序
+  const sorted = [...matchingBatches].sort((a,b) => a.batchCode.localeCompare(b.batchCode));
+
+  let totalQty = 0;
+  let totalEstProfit = 0;
+  let totalWage = 0;
+  let totalActualProfit = 0;
+
+  let rows = '';
+  sorted.forEach(b => {
+    const prodName = b.prodName || b.prodKey || '-';
+    const colorStr = b.color ? ` · ${b.color}` : '';
+    const price = b.price || 0;
+
+    // 本月出库记录
+    const monthDeliveries = (b.deliveries || []).filter(d => {
+      const dym = extractYM(d.date);
+      return dym === ym;
+    });
+    const outQty = monthDeliveries.reduce((s, d) => s + d.qty, 0);
+    // 员工薪资 = 本月出货 wageShare 之和
+    const wageShare = monthDeliveries.reduce((s, d) => s + (d.wageShare || 0), 0);
+    // 实际利润 = 本月出货利润之和
+    const actualProfit = monthDeliveries.reduce((s, d) => s + (d.profit || 0), 0);
+
+    // 结束批次（无出货）：利润用 batch.profit
+    let showQty = outQty;
+    let showWage = wageShare;
+    let showActualProfit = actualProfit;
+    let statusTag = '';
+    if(b.status === 'closed'){
+      const closedThisMonth = b.closedTime && b.closedTime.slice(0,7) === ym;
+      if(closedThisMonth && outQty === 0){
+        showQty = 0;
+        showWage = 0;
+        showActualProfit = b.profit || 0;
+        statusTag = ' <span style="font-size:11px;color:#9ca3af;background:#f3f4f6;padding:1px 5px;border-radius:4px">结束</span>';
+      }
+    }
+
+    // 预估利润 = 单价 × 本月出货量
+    const estProfit = price * showQty;
+
+    totalQty += showQty;
+    totalEstProfit += estProfit;
+    totalWage += showWage;
+    totalActualProfit += showActualProfit;
+
+    // 出库日期：取本月最后一次出库记录的日期；结束批次用 closedTime；否则取最新出货日期
+    let outDate = '-';
+    if(monthDeliveries.length > 0){
+      outDate = monthDeliveries.map(d => d.date).sort().pop() || '-';
+      outDate = outDate.slice(0,10);
+    } else if(b.status === 'closed' && b.closedTime){
+      outDate = b.closedTime.slice(0,10);
+    }
+
+    rows += `<tr>
+      <td style="white-space:nowrap;font-size:12px;color:#666">${outDate}</td>
+      <td>${prodName}${colorStr}${statusTag}</td>
+      <td style="text-align:right">¥${price.toFixed(2)}</td>
+      <td style="text-align:center">${showQty}</td>
+      <td class="mr-profit" style="text-align:right">¥${estProfit.toFixed(2)}</td>
+      <td style="text-align:right;color:#f48fb1">¥${showWage.toFixed(2)}</td>
+      <td style="text-align:right;color:#ff3b30;font-weight:600">¥${showActualProfit.toFixed(2)}</td>
+    </tr>`;
+  });
+
+  container.innerHTML = `
+    <table class="monthly-report-table">
+      <thead>
+        <tr>
+          <th>出货日期</th>
+          <th>产品名</th>
+          <th style="text-align:right">单价</th>
+          <th style="text-align:center">本月出货</th>
+          <th style="text-align:right">预估利润</th>
+          <th style="text-align:right">员工薪资</th>
+          <th style="text-align:right">实际利润</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2" style="text-align:left;padding:10px 8px">合计 ${sorted.length} 批次</td>
+          <td></td>
+          <td style="text-align:center;padding:10px 8px;font-weight:700">${totalQty} 件</td>
+          <td class="mr-profit" style="text-align:right;padding:10px 8px">¥${totalEstProfit.toFixed(2)}</td>
+          <td style="text-align:right;padding:10px 8px;color:#f48fb1;font-weight:700">¥${totalWage.toFixed(2)}</td>
+          <td style="text-align:right;padding:10px 8px;color:#ff3b30;font-weight:700">¥${totalActualProfit.toFixed(2)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+
 }
 
 async function adminLoadTotal(){
@@ -2345,8 +2519,14 @@ function adminLoadBatchList(){
         </div>`;
     }
 
-    // 预估利润 = 入库数量 × 单价
-    const estimatedProfit = (b.qty || 0) * (b.price || 0);
+    // 预估利润：按批次状态区分
+    //   入库中/部分出库 → 入库数量 × 单价
+    //   已出库/已结束  → 出货数量 × 单价
+    const outQtyTotal = (b.deliveries || []).reduce((s, d) => s + d.qty, 0);
+    const isFinished = b.status === 'out' || b.status === 'closed';
+    const estimatedProfit = isFinished
+      ? outQtyTotal * (b.price || 0)
+      : (b.qty || 0) * (b.price || 0);
 
     // 颜色 badge：从 currentColors 获取颜色值，或使用默认映射
     const getColorStyle = (colorName) => {
@@ -3351,8 +3531,10 @@ async function testServerChanSettings() {
 }
 
 // 在显示设置页面时加载配置
-const originalShowAdmin = showAdmin;
-showAdmin = async function(tab) {
+// 包装原始 showAdmin，添加 session tab 保存逻辑
+(function(){
+  const originalShowAdmin = window.showAdmin;
+  window.showAdmin = async function(tab) {
   // 保存当前 tab 到 sessionStorage，用于刷新后恢复
   const session = JSON.parse(localStorage.getItem('factory_session') || '{}');
   session.currentTab = tab;
@@ -3366,7 +3548,8 @@ showAdmin = async function(tab) {
   if (tab === 'stock') {
     stockLoadItems();
   }
-};
+  };
+})();
 
 // 默认颜色
 const defaultColors = [
