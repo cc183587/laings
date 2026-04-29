@@ -375,7 +375,8 @@
             storageKey: 'factory_system_url',
             redirectDelay: 2, // 跳转倒计时秒数
             // 固定局域网地址（用于外网访问时显示本地入口）
-            fixedLanUrl: 'http://192.168.31.193:3001'  // ← 修改为你的实际局域网地址
+            fixedLanUrl: 'http://192.168.31.193:3001',  // ← 修改为你的实际局域网地址
+            version: 'v2' // 版本号：修改此值可强制清除旧缓存，使用新 defaultUrl
         };
         
         // DOM 元素
@@ -421,9 +422,16 @@
             return null;
         }
         
-        // 获取保存的 URL
+        // 获取保存的 URL（带版本号机制：代码更新后自动清除旧缓存）
         function getSavedUrl() {
             try {
+                const lastVer = localStorage.getItem(CONFIG.storageKey + '_ver');
+                // 版本号变化时清除旧地址，强制使用新的 defaultUrl
+                if (lastVer !== CONFIG.version) {
+                    localStorage.removeItem(CONFIG.storageKey);
+                    localStorage.setItem(CONFIG.storageKey + '_ver', CONFIG.version);
+                    return CONFIG.defaultUrl;
+                }
                 const saved = localStorage.getItem(CONFIG.storageKey);
                 return saved || CONFIG.defaultUrl;
             } catch (e) {
